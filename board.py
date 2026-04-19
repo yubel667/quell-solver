@@ -212,8 +212,6 @@ class BoardState:
 
         while sim.moving_pieces:
             # 1. Detect Infinite Loop
-            # We use a signature of all moving pieces. If the exact set of moving pieces 
-            # with their locations and the global direction repeats, nothing new can happen.
             current_signature = tuple(sorted([(p.get_sort_key(), p.loc.to_tuple()) for p in sim.moving_pieces]))
             if current_signature in history:
                 raise InfiniteLoopError("Infinite loop detected in move simulation")
@@ -259,8 +257,8 @@ class BoardState:
 
                 p.loc = p.loc + direction
                 
-                # Interaction logic
-                p.handle_collision(self._get_dynamic_at(p.loc, sim), sim)
+                # Interaction logic - exclude self to avoid self-collision
+                p.handle_collision(self._get_dynamic_at(p.loc, sim, exclude=p), sim)
 
                 # Portal logic
                 portal = self.setup.get_portal_at(p.loc)
@@ -281,8 +279,9 @@ class BoardState:
 
         return BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
 
-    def _get_dynamic_at(self, loc: Loc, sim: SimState) -> Optional[Entity]:
+    def _get_dynamic_at(self, loc: Loc, sim: SimState, exclude: Optional[Entity] = None) -> Optional[Entity]:
         for collection in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
             for item in collection:
+                if item == exclude: continue
                 if item.loc == loc: return item
         return None
