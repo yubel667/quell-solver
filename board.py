@@ -275,13 +275,15 @@ class BoardState:
     def get_droplet_count(self):
         return len(self.droplets)
 
-    def get_next_state(self, droplet_idx: int, direction: Direction) -> Optional['BoardState']:
+    def get_next_state(self, droplet_idx: int, direction: Direction) -> Optional[Tuple['BoardState', List['BoardState']]]:
         sim = SimState(self.setup, copy.deepcopy(self.droplets), copy.deepcopy(self.boxes), 
                        copy.deepcopy(self.pearls), copy.deepcopy(self.gates))
         sim.moving_pieces.add(sim.droplets[droplet_idx])
         
         # history tracks (piece_id, loc, direction) for all moving pieces to detect infinite loops
         history = set()
+        intermediate_states = [BoardState(self.setup, copy.deepcopy(sim.droplets), copy.deepcopy(sim.boxes), 
+                                         copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates))]
 
         while sim.moving_pieces:
             # 1. Detect Infinite Loop
@@ -353,14 +355,21 @@ class BoardState:
                 if e in sim.moving_pieces: sim.moving_pieces.remove(e)
             sim.to_remove.clear()
             
+            # Save intermediate state for animation
+            intermediate_states.append(BoardState(self.setup, copy.deepcopy(sim.droplets), copy.deepcopy(sim.boxes), 
+                                                 copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates)))
+            
             if not sim.pearls: # Immediate Win
-                return BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
+                final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
+                return final_state, intermediate_states
             
             # If all droplets are gone but pearls remain, failure
             if not sim.droplets:
                 return None
 
-        return BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
+        final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
+        return final_state, intermediate_states
+
 
     def _get_dynamic_at(self, loc: Loc, sim: SimState, exclude: Optional[Entity] = None) -> Optional[Entity]:
         for collection in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:

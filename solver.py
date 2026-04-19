@@ -37,10 +37,11 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
         for droplet_idx in range(len(curr_state.droplets)):
             for direction in Direction:
                 try:
-                    next_state = curr_state.get_next_state(droplet_idx, direction)
-                    if next_state is None:
+                    result = curr_state.get_next_state(droplet_idx, direction)
+                    if result is None:
                         continue
                     
+                    next_state, _ = result
                     state_id = next_state.get_id()
                     if state_id not in visited:
                         visited.add(state_id)

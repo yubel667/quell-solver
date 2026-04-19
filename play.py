@@ -65,12 +65,12 @@ def main():
                     
                     if direction and current_state.droplets:
                         try:
-                            next_state = current_state.get_next_state(selected_droplet_idx, direction)
-                            if next_state is None:
+                            result = current_state.get_next_state(selected_droplet_idx, direction)
+                            if result is None:
                                 status_msg = "Droplet Destroyed!"
                                 status_msg_time = now
                             else:
-                                current_state = next_state
+                                current_state, _ = result
                                 # Ensure selection is still valid after merges
                                 if not current_state.droplets:
                                     selected_droplet_idx = 0
