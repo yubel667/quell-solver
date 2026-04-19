@@ -1,5 +1,6 @@
 In Quell, the game happens in a 2D grid.
 
+## Ruleset
 The following entities exist in the grid, or it can be empty.
 
 1. Droplet (movable)
@@ -37,3 +38,25 @@ The box is also movable if pushed by a droplet(they move in the same step concur
 - another box: both box will disappear.
 
 An infinite loop (failure) is defined if the exact same state is reached without any state change, the most common form is a droplet moving in one direction non-stop.
+
+
+## Rendering
+The board is rendered as light gray.
+- The droplet is a cyan circle.
+- The wall is a Dark Gray square.
+- The spike is a small Red Square, on which an arrow is added for the direction of the spike, or a star if it is omini direction.
+- Pearl is a small white cirtle.
+- Box is a Brown square.
+- Portal is a yellow ring.
+- Gate if open is a tiny green circle. If closed, it is 9 tiny green circle evenly distributed on a square.
+
+
+## Level editor
+
+The level editor contains all the entity above as a side bar, and user can switch entity type by clicking on the icon. left click adds entity, right click removes it, R rotate the current entity in the cell.
+
+The portal needs to have a way set its id.
+
+There's also a feature to enlarge or reduce the grid width or height.
+
+Hit S to save, and if it is a valid save, also quit. Save to questions/{level_id}.txt
