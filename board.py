@@ -2,6 +2,8 @@ import numpy as np
 from typing import List, Tuple, Dict, Optional, Set, Union
 import enum
 import copy
+import math
+import pygame
 
 class Direction(enum.Enum):
     UP = (-1, 0)
@@ -45,12 +47,17 @@ class Entity:
     def get_sort_key(self) -> Tuple:
         raise NotImplementedError()
 
-    def render(self, screen, scale, camera_offset):
+    def render(self, screen, px, py, tile_size):
         pass
 
 class Pearl(Entity):
     def get_sort_key(self):
         return ("p", self.loc.y, self.loc.x)
+
+    def render(self, screen, px, py, tile_size):
+        center = (px + tile_size // 2, py + tile_size // 2)
+        pygame.draw.circle(screen, (255, 255, 255), center, tile_size // 4)
+        pygame.draw.circle(screen, (200, 200, 200), center, tile_size // 4, 1)
 
 class Gate(Entity):
     def __init__(self, loc: Loc, is_closed: bool = False):
@@ -60,6 +67,17 @@ class Gate(Entity):
     def get_sort_key(self):
         return ("g", self.loc.y, self.loc.x, self.is_closed)
 
+    def render(self, screen, px, py, tile_size):
+        center = (px + tile_size // 2, py + tile_size // 2)
+        color = (0, 200, 0)
+        if not self.is_closed:
+            pygame.draw.circle(screen, color, center, 5)
+        else:
+            for dy in [-1, 0, 1]:
+                for dx in [-1, 0, 1]:
+                    c = (center[0] + dx * 15, center[1] + dy * 15)
+                    pygame.draw.circle(screen, color, c, 3)
+
 class Portal(Entity):
     def __init__(self, loc: Loc, portal_id: str):
         super().__init__(loc)
@@ -67,6 +85,13 @@ class Portal(Entity):
 
     def get_sort_key(self):
         return ("o", self.portal_id, self.loc.y, self.loc.x)
+
+    def render(self, screen, px, py, tile_size):
+        center = (px + tile_size // 2, py + tile_size // 2)
+        pygame.draw.circle(screen, (255, 215, 0), center, tile_size // 2 - 10, 5)
+        font = pygame.font.SysFont(None, 24)
+        img = font.render(str(self.portal_id), True, (60, 60, 60))
+        screen.blit(img, (center[0] - img.get_width() // 2, center[1] - img.get_height() // 2))
 
 class Movable(Entity):
     def can_move_into(self, target_entity: Optional[Entity], direction: Direction) -> bool:
@@ -84,10 +109,14 @@ class Droplet(Movable):
     def get_sort_key(self):
         return ("d", self.loc.y, self.loc.x)
 
+    def render(self, screen, px, py, tile_size):
+        center = (px + tile_size // 2, py + tile_size // 2)
+        pygame.draw.circle(screen, (0, 255, 255), center, tile_size // 2 - 5)
+        pygame.draw.circle(screen, (0, 200, 200), center, tile_size // 2 - 5, 2)
+
     def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction) -> bool:
         if stat == StationaryPieceType.WALL:
             return True
-        # Spikes are handled in handle_stationary_collision for lethal check
         return False
 
     def handle_stationary_collision(self, stat: StationaryPieceType, direction: Direction):
@@ -107,7 +136,7 @@ class Droplet(Movable):
     def can_move_into(self, target: Optional[Entity], direction: Direction) -> bool:
         if target is None: return True
         if isinstance(target, (Pearl, Droplet)): return True
-        if isinstance(target, Box): return True # Can attempt to push
+        if isinstance(target, Box): return True 
         if isinstance(target, Gate): return not target.is_closed
         if isinstance(target, Portal): return True
         return False
@@ -117,21 +146,25 @@ class Droplet(Movable):
             state.pearls.remove(target)
             return False
         if isinstance(target, Droplet):
-            state.to_remove.add(target) # Merging
+            state.to_remove.add(target) 
             return False
         if isinstance(target, Box):
             if target not in state.moving_pieces:
                 state.moving_pieces.add(target)
-            return False # Keep moving if box can move (checked in SimState.step)
+            return False 
         return False
 
 class Box(Movable):
     def get_sort_key(self):
         return ("b", self.loc.y, self.loc.x)
 
+    def render(self, screen, px, py, tile_size):
+        rect = pygame.Rect(px + 5, py + 5, tile_size - 10, tile_size - 10)
+        pygame.draw.rect(screen, (139, 69, 19), rect)
+        pygame.draw.rect(screen, (80, 40, 10), rect, 2)
+
     def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction) -> bool:
         if stat == StationaryPieceType.WALL: return True
-        # Boxes treat all spikes as walls
         return stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
                         StationaryPieceType.SPIKE_LEFT, StationaryPieceType.SPIKE_RIGHT, 
                         StationaryPieceType.SPIKE_OMNI}
@@ -140,7 +173,6 @@ class Box(Movable):
         if target is None: return True
         if isinstance(target, Gate): return not target.is_closed
         if isinstance(target, Portal): return True
-        # Blocks against Droplets, Pearls, other Boxes (until annihilation)
         if isinstance(target, Box): return True 
         return False
 
@@ -150,6 +182,44 @@ class Box(Movable):
             state.to_remove.add(target)
             return False
         return False
+
+class StationaryPiece:
+    @staticmethod
+    def render(screen, stat: StationaryPieceType, px, py, tile_size):
+        rect = pygame.Rect(px, py, tile_size, tile_size)
+        if stat == StationaryPieceType.WALL:
+            pygame.draw.rect(screen, (60, 60, 60), rect)
+            pygame.draw.rect(screen, (40, 40, 40), rect, 2)
+        elif stat != StationaryPieceType.EMPTY:
+            pygame.draw.rect(screen, (255, 0, 0), rect)
+            center = rect.center
+            if stat == StationaryPieceType.SPIKE_OMNI:
+                points = []
+                for i in range(8):
+                    angle = i * math.pi / 4
+                    r = tile_size // 4 if i % 2 == 0 else tile_size // 8
+                    points.append((center[0] + r * math.cos(angle), center[1] + r * math.sin(angle)))
+                pygame.draw.polygon(screen, (255, 255, 255), points)
+            else:
+                r = tile_size // 4
+                arrow_map = {
+                    StationaryPieceType.SPIKE_UP: (0, -r),
+                    StationaryPieceType.SPIKE_DOWN: (0, r),
+                    StationaryPieceType.SPIKE_LEFT: (-r, 0),
+                    StationaryPieceType.SPIKE_RIGHT: (r, 0)
+                }
+                offset = arrow_map[stat]
+                tip = (center[0] + offset[0], center[1] + offset[1])
+                if stat == StationaryPieceType.SPIKE_UP:
+                    pts = [tip, (tip[0]-10, tip[1]+15), (tip[0]+10, tip[1]+15)]
+                elif stat == StationaryPieceType.SPIKE_DOWN:
+                    pts = [tip, (tip[0]-10, tip[1]-15), (tip[0]+10, tip[1]-15)]
+                elif stat == StationaryPieceType.SPIKE_LEFT:
+                    pts = [tip, (tip[0]+15, tip[1]-10), (tip[0]+15, tip[1]+10)]
+                else:
+                    pts = [tip, (tip[0]-15, tip[1]-10), (tip[0]-15, tip[1]+10)]
+                pygame.draw.polygon(screen, (255, 255, 255), pts)
+
 
 class BoardSetup:
     def __init__(self, grid: np.ndarray, portals: List[Portal]):
