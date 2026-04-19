@@ -272,6 +272,9 @@ class BoardState:
     def is_solved(self):
         return len(self.pearls) == 0
 
+    def get_droplet_count(self):
+        return len(self.droplets)
+
     def get_next_state(self, droplet_idx: int, direction: Direction) -> Optional['BoardState']:
         sim = SimState(self.setup, copy.deepcopy(self.droplets), copy.deepcopy(self.boxes), 
                        copy.deepcopy(self.pearls), copy.deepcopy(self.gates))
@@ -300,7 +303,7 @@ class BoardState:
 
             # 3. Check for blockers
             can_move = True
-            for p in sim.moving_pieces:
+            for p in list(sim.moving_pieces):
                 target_loc = p.loc + direction
                 stat = self.setup.get_stationary_at(target_loc)
                 
@@ -308,19 +311,25 @@ class BoardState:
                     can_move = False; break
                 
                 if isinstance(p, Droplet):
-                    try: p.handle_stationary_collision(stat, direction)
-                    except ValueError: return None # Destroyed
+                    try: 
+                        p.handle_stationary_collision(stat, direction)
+                    except ValueError: 
+                        # Droplet Destroyed
+                        sim.to_remove.add(p)
+                        continue
 
                 target_ent = self._get_dynamic_at(target_loc, sim)
                 if target_ent and target_ent not in sim.moving_pieces:
                     if not p.can_move_into(target_ent, direction):
                         can_move = False; break
 
-            if not can_move: break
+            if not can_move and not sim.to_remove: break
 
             # 4. Execute Step
             gates_to_toggle = []
             for p in list(sim.moving_pieces):
+                if p in sim.to_remove: continue
+
                 # Leaving gate
                 old_ent = self._get_dynamic_at(p.loc, sim)
                 if isinstance(old_ent, Gate): gates_to_toggle.append(old_ent)
@@ -346,6 +355,10 @@ class BoardState:
             
             if not sim.pearls: # Immediate Win
                 return BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
+            
+            # If all droplets are gone but pearls remain, failure
+            if not sim.droplets:
+                return None
 
         return BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
 
