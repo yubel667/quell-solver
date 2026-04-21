@@ -307,7 +307,14 @@ class BoardState:
 
         while sim.moving_pieces:
             # 1. Detect Infinite Loop
-            current_signature = tuple(sorted([(p.get_sort_key(), p.loc.to_tuple()) for p in sim.moving_pieces]))
+            # We must include the state of pearls and gates, as collecting a pearl 
+            # or closing a gate changes the state and breaks what would otherwise be a loop.
+            current_signature = (
+                tuple(sorted(d.get_sort_key() for d in sim.droplets)),
+                tuple(sorted(b.get_sort_key() for b in sim.boxes)),
+                tuple(sorted(p.get_sort_key() for p in sim.pearls)),
+                tuple(sorted(g.get_sort_key() for g in sim.gates))
+            )
             if current_signature in history:
                 raise InfiniteLoopError("Infinite loop detected in move simulation")
             history.add(current_signature)
