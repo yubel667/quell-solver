@@ -460,6 +460,10 @@ class BoardState:
             for p in moving_list:
                 if p in sim.to_remove: continue
 
+                # Button logic: Triggers upon LEAVING the current cell
+                if self.setup.get_stationary_at(p.loc) == StationaryPieceType.BUTTON:
+                    sim.global_direction = direction
+
                 # Leaving gate: Find gate at current location before moving
                 for g in sim.gates:
                     if g.loc == p.loc:
@@ -475,10 +479,6 @@ class BoardState:
                     if other: p.loc = other.loc
 
                 p.loc = self.setup.wrap_loc(p.loc)
-
-                # Button logic
-                if self.setup.get_stationary_at(p.loc) == StationaryPieceType.BUTTON:
-                    sim.global_direction = direction
                 
                 # Interaction logic
                 target_ent = self._get_dynamic_at(p.loc, sim, exclude=p)
