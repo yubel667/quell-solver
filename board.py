@@ -319,52 +319,78 @@ class BoardState:
                 for p in list(sim.moving_pieces):
                     target_loc = p.loc + direction
                     target_ent = self._get_dynamic_at(target_loc, sim)
-                    # A Box is only added to the moving set if it is pushed by a Droplet.
-                    # If a Box is pushed by another Box, we don't add it to the moving set here;
-                    # instead, the moving Box will collide with the stationary Box and they will vanish.
                     if isinstance(p, Droplet) and isinstance(target_ent, Box) and target_ent not in sim.moving_pieces:
                         sim.moving_pieces.add(target_ent)
                         changed = True
 
-            # 3. Check for blockers
-            can_move = True
-            # Sort moving pieces by position in movement direction to handle chains correctly?
-            # Actually, we just need to know if ANY piece in the chain is blocked.
+            # 3. Identify who must stop
+            to_stop = set()
             for p in list(sim.moving_pieces):
                 target_loc = p.loc + direction
                 stat = self.setup.get_stationary_at(target_loc)
                 
+                # Stationary piece blockers
                 if p.is_blocked_by_stationary(stat, direction):
-                    can_move = False; break
+                    to_stop.add(p)
+                    continue
                 
+                # Droplet lethality check
                 if isinstance(p, Droplet):
-                    try: 
+                    try:
                         p.handle_stationary_collision(stat, direction)
-                    except ValueError: 
-                        # Droplet Destroyed
+                    except ValueError:
                         sim.to_remove.add(p)
                         continue
 
+                # Dynamic entity blockers (not in moving set)
                 target_ent = self._get_dynamic_at(target_loc, sim)
-                # If target is another piece NOT in the moving set, check if we can move into it
                 if target_ent and target_ent not in sim.moving_pieces:
                     if not p.can_move_into(target_ent, direction):
-                        can_move = False; break
-                # Note: collision between two moving pieces (e.g. two boxes) is handled in step 4.
+                        to_stop.add(p)
+                        continue
+                
+                # Gate blocking rule: Block if gate is closed OR will be closed by someone else leaving it
+                target_gate = None
+                wrapped_target = self.setup.wrap_loc(target_loc)
+                for g in sim.gates:
+                    if g.loc == wrapped_target:
+                        target_gate = g
+                        break
+                
+                if target_gate:
+                    if target_gate.is_closed:
+                        to_stop.add(p)
+                    else:
+                        # Open gate, check if someone else is currently AT the gate and LEAVING it
+                        for other in sim.moving_pieces:
+                            if other != p and other.loc == target_gate.loc:
+                                to_stop.add(p)
+                                break
+                if p in to_stop: continue
 
-            if not can_move and not sim.to_remove: break
+            # Propagation of stop state (push chains)
+            changed = True
+            while changed:
+                changed = False
+                for p in list(sim.moving_pieces):
+                    if p in to_stop: continue
+                    target_loc = p.loc + direction
+                    target_ent = self._get_dynamic_at(target_loc, sim)
+                    # If target is someone who is stopping, we must also stop
+                    if target_ent in to_stop:
+                        to_stop.add(p)
+                        changed = True
+
+            # Execute step for non-stopped pieces
+            for p in to_stop:
+                sim.moving_pieces.remove(p)
+            
+            if not sim.moving_pieces and not sim.to_remove: break
 
             # 4. Execute Step
             gates_to_toggle = []
             moving_list = list(sim.moving_pieces)
             
-            # To handle interactions correctly, we need to know where everyone is GOING
-            # especially for box-box annihilation.
-            new_locs = {}
-            for p in moving_list:
-                if p in sim.to_remove: continue
-                new_locs[p._uuid] = self.setup.wrap_loc(p.loc + direction)
-
             for p in moving_list:
                 if p in sim.to_remove: continue
 
@@ -384,11 +410,7 @@ class BoardState:
 
                 p.loc = self.setup.wrap_loc(p.loc)
                 
-                # Check for collision at NEW location
-                # 1. Collision with static-dynamic (Pearl, merged Droplet, pusher-Box chain handled by expansion)
-                # 2. Collision with another MOVING piece (Box annihilation)
-                
-                # Exclude self from dynamic check
+                # Interaction logic
                 target_ent = self._get_dynamic_at(p.loc, sim, exclude=p)
                 p.handle_collision(target_ent, sim)
 

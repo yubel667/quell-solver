@@ -125,7 +125,7 @@ def run_visualizer(initial_state, solution, autoplay=False, show_controls=True, 
     
     paused = not autoplay
     
-    ANIM_SPEED = 5.0        # Grid cells per second
+    ANIM_SPEED = 10.0        # Grid cells per second
     STEP_DELAY = 0.5        # Delay between logical moves
 
     in_step_delay = False
