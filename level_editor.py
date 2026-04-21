@@ -145,6 +145,8 @@ class LevelEditor:
         pygame.display.set_caption(f"Quell Level Editor - {self.level_id}")
         clock = pygame.time.Clock()
         
+        font = pygame.font.SysFont(None, 24)
+        
         while True:
             screen.fill((50, 50, 50))
             setup = BoardSetup(self.grid, self.portals)
@@ -155,7 +157,6 @@ class LevelEditor:
             sidebar_rect = pygame.Rect(sidebar_x, 0, sidebar_w, screen.get_height())
             pygame.draw.rect(screen, (30, 30, 30), sidebar_rect)
             
-            font = pygame.font.SysFont(None, 24)
             y_off = 20
             for tool in self.tools:
                 color = (255, 255, 0) if self.selected_tool == tool else (200, 200, 200)

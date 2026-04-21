@@ -43,6 +43,7 @@ class InfiniteLoopError(Exception):
 class Entity:
     def __init__(self, loc: Loc):
         self.loc = loc
+        self._uuid = None
 
     def get_sort_key(self) -> Tuple:
         raise NotImplementedError()
@@ -78,6 +79,8 @@ class Gate(Entity):
                     c = (center[0] + dx * 15, center[1] + dy * 15)
                     pygame.draw.circle(screen, color, c, 3)
 
+_PORTAL_FONT = None
+
 class Portal(Entity):
     def __init__(self, loc: Loc, portal_id: str):
         super().__init__(loc)
@@ -87,10 +90,12 @@ class Portal(Entity):
         return ("o", self.portal_id, self.loc.y, self.loc.x)
 
     def render(self, screen, px, py, tile_size):
+        global _PORTAL_FONT
         center = (px + tile_size // 2, py + tile_size // 2)
         pygame.draw.circle(screen, (255, 215, 0), center, tile_size // 2 - 10, 5)
-        font = pygame.font.SysFont(None, 24)
-        img = font.render(str(self.portal_id), True, (60, 60, 60))
+        if _PORTAL_FONT is None:
+            _PORTAL_FONT = pygame.font.SysFont(None, 24)
+        img = _PORTAL_FONT.render(str(self.portal_id), True, (60, 60, 60))
         screen.blit(img, (center[0] - img.get_width() // 2, center[1] - img.get_height() // 2))
 
 class Movable(Entity):
@@ -276,8 +281,18 @@ class BoardState:
         return len(self.droplets)
 
     def get_next_state(self, droplet_idx: int, direction: Direction) -> Optional[Tuple['BoardState', List['BoardState']]]:
-        sim = SimState(self.setup, copy.deepcopy(self.droplets), copy.deepcopy(self.boxes), 
-                       copy.deepcopy(self.pearls), copy.deepcopy(self.gates))
+        # Assign temporary UUIDs to all pieces to track them through sliding
+        temp_droplets = copy.deepcopy(self.droplets)
+        temp_boxes = copy.deepcopy(self.boxes)
+        temp_pearls = copy.deepcopy(self.pearls)
+        temp_gates = copy.deepcopy(self.gates)
+        
+        for i, d in enumerate(temp_droplets): d._uuid = f"d{i}"
+        for i, b in enumerate(temp_boxes): b._uuid = f"b{i}"
+        for i, p in enumerate(temp_pearls): p._uuid = f"p{i}"
+        for i, g in enumerate(temp_gates): g._uuid = f"g{i}"
+
+        sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates)
         sim.moving_pieces.add(sim.droplets[droplet_idx])
         
         # history tracks (piece_id, loc, direction) for all moving pieces to detect infinite loops

@@ -35,6 +35,11 @@ def main():
     status_msg = ""
     status_msg_time = 0
 
+    # Cache fonts
+    font_28_bold = pygame.font.SysFont(None, 28, bold=True)
+    font_24 = pygame.font.SysFont(None, 24)
+    font_20 = pygame.font.SysFont(None, 20)
+
     running = True
     while running:
         now = time.time()
@@ -96,16 +101,15 @@ def main():
         
         game_status = "SOLVED!" if current_state.is_solved() else "Playing..."
         color = (0, 255, 0) if current_state.is_solved() else (200, 200, 200)
-        status_img = pygame.font.SysFont(None, 28, bold=True).render(game_status, True, color)
+        status_img = font_28_bold.render(game_status, True, color)
         screen.blit(status_img, (vis.MARGIN, status_area_y))
         
         # Temporary status messages (warnings)
         if status_msg and now - status_msg_time < 2.0:
-            msg_img = pygame.font.SysFont(None, 24).render(status_msg, True, (255, 100, 100))
+            msg_img = font_24.render(status_msg, True, (255, 100, 100))
             screen.blit(msg_img, (screen.get_width() - vis.MARGIN - msg_img.get_width(), status_area_y))
 
         # Controls
-        ctrl_font = pygame.font.SysFont(None, 20)
         controls = [
             "ARROWS: Move selected Droplet",
             "TAB: Cycle selected Droplet (White box)",
@@ -113,7 +117,7 @@ def main():
             "ESC: Quit"
         ]
         for i, line in enumerate(controls):
-            screen.blit(ctrl_font.render(line, True, (150, 150, 150)), (vis.MARGIN, status_area_y + 40 + i * 20))
+            screen.blit(font_20.render(line, True, (150, 150, 150)), (vis.MARGIN, status_area_y + 40 + i * 20))
             
         pygame.display.flip()
         clock.tick(60)

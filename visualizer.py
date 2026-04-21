@@ -1,7 +1,7 @@
 import pygame
 import time
 from board import (
-    StationaryPieceType, Loc, StationaryPiece, Direction
+    StationaryPieceType, Loc, StationaryPiece, Direction, Entity
 )
 
 # Visual Constants
@@ -13,31 +13,28 @@ MARGIN = 40
 def get_pixel_pos(loc: Loc):
     return MARGIN + loc.x * TILE_SIZE, MARGIN + loc.y * TILE_SIZE
 
+def get_pixel_pos_interpolated(loc1: Loc, loc2: Loc, alpha: float):
+    # Handle portal "jumps" - if distance > 1.5 cells, don't interpolate
+    if abs(loc1.x - loc2.x) > 1.5 or abs(loc1.y - loc2.y) > 1.5:
+        return get_pixel_pos(loc2 if alpha > 0.5 else loc1)
+    
+    x = loc1.x + (loc2.x - loc1.x) * alpha
+    y = loc1.y + (loc2.y - loc1.y) * alpha
+    return MARGIN + x * TILE_SIZE, MARGIN + y * TILE_SIZE
+
 def draw_board(screen, state):
     screen.fill(BACKGROUND)
-    
-    # Grid lines
     for y in range(state.setup.height + 1):
-        pygame.draw.line(screen, GRID_LINE_COLOR, 
-                         (MARGIN, MARGIN + y * TILE_SIZE), 
-                         (MARGIN + state.setup.width * TILE_SIZE, MARGIN + y * TILE_SIZE))
+        pygame.draw.line(screen, GRID_LINE_COLOR, (MARGIN, MARGIN + y * TILE_SIZE), (MARGIN + state.setup.width * TILE_SIZE, MARGIN + y * TILE_SIZE))
     for x in range(state.setup.width + 1):
-        pygame.draw.line(screen, GRID_LINE_COLOR, 
-                         (MARGIN + x * TILE_SIZE, MARGIN), 
-                         (MARGIN + x * TILE_SIZE, MARGIN + state.setup.height * TILE_SIZE))
-        
-    # Draw stationary
+        pygame.draw.line(screen, GRID_LINE_COLOR, (MARGIN + x * TILE_SIZE, MARGIN), (MARGIN + x * TILE_SIZE, MARGIN + state.setup.height * TILE_SIZE))
     for y in range(state.setup.height):
         for x in range(state.setup.width):
             px, py = get_pixel_pos(Loc(y, x))
             StationaryPiece.render(screen, state.setup.get_stationary_at(Loc(y, x)), px, py, TILE_SIZE)
-            
-    # Draw portals (part of setup)
     for portal in state.setup.portals:
         px, py = get_pixel_pos(portal.loc)
         portal.render(screen, px, py, TILE_SIZE)
-        
-    # Draw dynamic entities
     for p in state.pearls:
         px, py = get_pixel_pos(p.loc)
         p.render(screen, px, py, TILE_SIZE)
@@ -51,6 +48,53 @@ def draw_board(screen, state):
         px, py = get_pixel_pos(d.loc)
         d.render(screen, px, py, TILE_SIZE)
 
+def draw_board_interpolated(screen, state1, state2, alpha):
+    screen.fill(BACKGROUND)
+    for y in range(state1.setup.height + 1):
+        pygame.draw.line(screen, GRID_LINE_COLOR, (MARGIN, MARGIN + y * TILE_SIZE), (MARGIN + state1.setup.width * TILE_SIZE, MARGIN + y * TILE_SIZE))
+    for x in range(state1.setup.width + 1):
+        pygame.draw.line(screen, GRID_LINE_COLOR, (MARGIN + x * TILE_SIZE, MARGIN), (MARGIN + x * TILE_SIZE, MARGIN + state1.setup.height * TILE_SIZE))
+    for y in range(state1.setup.height):
+        for x in range(state1.setup.width):
+            px, py = get_pixel_pos(Loc(y, x))
+            StationaryPiece.render(screen, state1.setup.get_stationary_at(Loc(y, x)), px, py, TILE_SIZE)
+    for portal in state1.setup.portals:
+        px, py = get_pixel_pos(portal.loc)
+        portal.render(screen, px, py, TILE_SIZE)
+    
+    # Dynamic entities: Match by UUID
+    # We prioritize state2 for existing entities, and state1 for disappearing ones
+    s1_entities = {e._uuid: e for e in state1.pearls + state1.gates + state1.boxes + state1.droplets if e._uuid}
+    s2_entities = {e._uuid: e for e in state2.pearls + state2.gates + state2.boxes + state2.droplets if e._uuid}
+    
+    all_uuids = set(s1_entities.keys()) | set(s2_entities.keys())
+    
+    for uuid in all_uuids:
+        e1 = s1_entities.get(uuid)
+        e2 = s2_entities.get(uuid)
+        
+        if e1 and e2:
+            px, py = get_pixel_pos_interpolated(e1.loc, e2.loc, alpha)
+            e2.render(screen, px, py, TILE_SIZE)
+        elif e1:
+            # Disappearing entity (e.g. collected pearl, merged droplet)
+            # Render at e1.loc, maybe fade? For now just static at e1.loc
+            px, py = get_pixel_pos(e1.loc)
+            e1.render(screen, px, py, TILE_SIZE)
+        elif e2:
+            # New entity? Should not happen in intermediate frames
+            px, py = get_pixel_pos(e2.loc)
+            e2.render(screen, px, py, TILE_SIZE)
+
+# Global font cache to avoid expensive SysFont calls every frame
+_FONT_CACHE = {}
+
+def get_font(size, bold=False):
+    key = (size, bold)
+    if key not in _FONT_CACHE:
+        _FONT_CACHE[key] = pygame.font.SysFont(None, size, bold=bold)
+    return _FONT_CACHE[key]
+
 def run_visualizer(initial_state, solution, autoplay=False, show_controls=True, level_id=None):
     pygame.init()
     W_WIDTH = TILE_SIZE * initial_state.setup.width + MARGIN * 2
@@ -59,8 +103,6 @@ def run_visualizer(initial_state, solution, autoplay=False, show_controls=True, 
     pygame.display.set_caption(f"Quell Visualizer - {level_id}")
     clock = pygame.time.Clock()
 
-    # Pre-calculate all frames for the solution
-    # steps_frames is a list of lists of BoardState
     steps_frames = [[initial_state]]
     curr = initial_state
     if solution:
@@ -68,89 +110,142 @@ def run_visualizer(initial_state, solution, autoplay=False, show_controls=True, 
             result = curr.get_next_state(move['droplet_idx'], Direction[move['direction']])
             if result:
                 final_state, intermediates = result
-                # Intermediates[0] is current state, Intermediates[1:] are sliding frames
-                steps_frames.append(intermediates[1:])
+                steps_frames.append(intermediates)
                 curr = final_state
 
     running = True
     step_idx = 0
     frame_in_step = 0
+    frame_alpha = 0.0 # 0.0 to 1.0 between frame_in_step and frame_in_step + 1
+    
     paused = not autoplay
-    last_frame_time = time.time()
     
-    FRAME_DELAY = 0.05      # Sliding animation speed
+    ANIM_SPEED = 5.0        # Grid cells per second
     STEP_DELAY = 0.5        # Delay between logical moves
-    
+
     in_step_delay = False
+    delay_start_time = 0
+    stop_after_step = False
+
+    last_update_time = time.time()
 
     while running:
         now = time.time()
+        dt = now - last_update_time
+        last_update_time = now
+
+        current_frame = steps_frames[step_idx][frame_in_step]
+        is_solved = current_frame.is_solved()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT: running = False
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE: running = False
-                elif event.key == pygame.K_SPACE: 
-                    paused = not paused
-                    in_step_delay = False
+                elif event.key in [pygame.K_SPACE, pygame.K_RETURN] and is_solved:
+                    running = False
+                elif event.key == pygame.K_SPACE:
+                    # Play NEXT step then stop
+                    if step_idx < len(steps_frames) - 1:
+                        if frame_in_step == len(steps_frames[step_idx]) - 1:
+                            step_idx += 1
+                            frame_in_step = 0
+                        frame_alpha = 0.0
+                        paused = False
+                        in_step_delay = False
+                        stop_after_step = True
+                    else:
+                        paused = True
                 elif event.key == pygame.K_RIGHT: 
-                    # Go to next logical step
                     if step_idx < len(steps_frames) - 1:
                         step_idx += 1
                         frame_in_step = len(steps_frames[step_idx]) - 1
+                        frame_alpha = 0.0
                     paused = True
+                    in_step_delay = False
+                    stop_after_step = False
                 elif event.key == pygame.K_LEFT: 
-                    # Go to previous logical step
                     if step_idx > 0:
                         step_idx -= 1
                         frame_in_step = len(steps_frames[step_idx]) - 1
+                        frame_alpha = 0.0
                     paused = True
+                    in_step_delay = False
+                    stop_after_step = False
                 elif event.key == pygame.K_r: 
                     step_idx = 0
                     frame_in_step = 0
+                    frame_alpha = 0.0
                     paused = True
+                    in_step_delay = False
+                    stop_after_step = False
 
         # Playback logic
         if not paused:
-            elapsed = now - last_frame_time
-            if in_step_delay:
-                if elapsed >= STEP_DELAY:
+            if step_idx == 0:
+                # Initial state (Step 0) has no animation, jump to first move immediately
+                if len(steps_frames) > 1:
+                    step_idx = 1
+                    frame_in_step = 0
+                    frame_alpha = 0.0
+                else:
+                    paused = True
+            elif in_step_delay:
+                if now - delay_start_time >= STEP_DELAY:
                     if step_idx < len(steps_frames) - 1:
-                        step_idx += 1
-                        frame_in_step = 0
-                        in_step_delay = False
-                        last_frame_time = now
+                        if stop_after_step:
+                            paused = True
+                            stop_after_step = False
+                        else:
+                            step_idx += 1
+                            frame_in_step = 0
+                            frame_alpha = 0.0
+                            in_step_delay = False
                     else:
                         paused = True
             else:
-                if elapsed >= FRAME_DELAY:
+                frame_alpha += dt * ANIM_SPEED
+                while frame_alpha >= 1.0:
+                    frame_alpha -= 1.0
                     if frame_in_step < len(steps_frames[step_idx]) - 1:
                         frame_in_step += 1
-                        last_frame_time = now
                     else:
-                        # End of current step animation
+                        # End of animation for this step
                         if step_idx < len(steps_frames) - 1:
-                            in_step_delay = True
-                            last_frame_time = now
+                            if stop_after_step:
+                                paused = True
+                                frame_alpha = 0.0 # Snap to end
+                                break
+                            else:
+                                in_step_delay = True
+                                delay_start_time = now
+                                frame_alpha = 0.0 # Reset for next step
+                                break
                         else:
                             paused = True
+                            frame_alpha = 0.0 # Snap to end
+                            break
 
-        current_frame = steps_frames[step_idx][frame_in_step]
-        draw_board(screen, current_frame)
+        # Rendering
+        if not in_step_delay and frame_in_step < len(steps_frames[step_idx]) - 1:
+            state1 = steps_frames[step_idx][frame_in_step]
+            state2 = steps_frames[step_idx][frame_in_step + 1]
+            draw_board_interpolated(screen, state1, state2, frame_alpha)
+        else:
+            draw_board(screen, steps_frames[step_idx][frame_in_step])
         
         # UI
         status_y = W_HEIGHT + 10
         pygame.draw.rect(screen, (30, 30, 30), (0, status_y - 10, screen.get_width(), 150))
-        
+        current_frame = steps_frames[step_idx][frame_in_step]
         status = "SOLVED!" if current_frame.is_solved() else "Playing..."
         color = (0, 255, 0) if current_frame.is_solved() else (200, 200, 200)
-        # step_idx 0 is initial, so moves are 1..N
         move_text = f"Step {step_idx}/{len(steps_frames)-1}"
-        img = pygame.font.SysFont(None, 24).render(f"{status} ({move_text})", True, color)
+        img = get_font(24).render(f"{status} ({move_text})", True, color)
         screen.blit(img, (MARGIN, status_y))
 
         if show_controls:
-            ctrl_font = pygame.font.SysFont(None, 20)
-            controls = ["SPACE: Toggle Play/Pause", "RIGHT/LEFT: Next/Prev Step", "R: Reset", "ESC: Quit"]
+            ctrl_font = get_font(20)
+            controls = ["SPACE: Play Next Step", "RIGHT/LEFT: Jump to Step", "R: Reset", "ESC: Quit"]
             for i, line in enumerate(controls):
                 screen.blit(ctrl_font.render(line, True, (150, 150, 150)), (MARGIN, status_y + 40 + i * 20))
         
