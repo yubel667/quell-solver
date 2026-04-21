@@ -19,6 +19,8 @@ class StationaryPieceType(enum.Enum):
     SPIKE_LEFT = 4
     SPIKE_RIGHT = 5
     SPIKE_OMNI = 6
+    BUTTON = 7
+    ROTATABLE_SPIKE = 8
 
 class Loc:
     def __init__(self, y: int, x: int):
@@ -107,7 +109,7 @@ class Movable(Entity):
         """Handles the effect of moving into target_entity. Returns True if piece should stop."""
         raise NotImplementedError()
 
-    def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction) -> bool:
+    def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction, global_direction: Optional[Direction] = None) -> bool:
         raise NotImplementedError()
 
 class Droplet(Movable):
@@ -119,19 +121,39 @@ class Droplet(Movable):
         pygame.draw.circle(screen, (0, 255, 255), center, tile_size // 2 - 5)
         pygame.draw.circle(screen, (0, 200, 200), center, tile_size // 2 - 5, 2)
 
-    def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction) -> bool:
+    def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction, global_direction: Optional[Direction] = None) -> bool:
         if stat == StationaryPieceType.WALL:
             return True
         if stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
                     StationaryPieceType.SPIKE_LEFT, StationaryPieceType.SPIKE_RIGHT}:
             return not self._is_lethal(stat, direction)
+        if stat == StationaryPieceType.ROTATABLE_SPIKE and global_direction:
+            # Map global_direction to the corresponding SPIKE type
+            spike_map = {
+                Direction.UP: StationaryPieceType.SPIKE_UP,
+                Direction.DOWN: StationaryPieceType.SPIKE_DOWN,
+                Direction.LEFT: StationaryPieceType.SPIKE_LEFT,
+                Direction.RIGHT: StationaryPieceType.SPIKE_RIGHT
+            }
+            mapped_spike = spike_map[global_direction]
+            return not self._is_lethal(mapped_spike, direction)
         return False
 
-    def handle_stationary_collision(self, stat: StationaryPieceType, direction: Direction):
+    def handle_stationary_collision(self, stat: StationaryPieceType, direction: Direction, global_direction: Optional[Direction] = None):
         if stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
                     StationaryPieceType.SPIKE_LEFT, StationaryPieceType.SPIKE_RIGHT, 
                     StationaryPieceType.SPIKE_OMNI}:
             if self._is_lethal(stat, direction):
+                raise ValueError("Droplet Destroyed")
+        if stat == StationaryPieceType.ROTATABLE_SPIKE and global_direction:
+            spike_map = {
+                Direction.UP: StationaryPieceType.SPIKE_UP,
+                Direction.DOWN: StationaryPieceType.SPIKE_DOWN,
+                Direction.LEFT: StationaryPieceType.SPIKE_LEFT,
+                Direction.RIGHT: StationaryPieceType.SPIKE_RIGHT
+            }
+            mapped_spike = spike_map[global_direction]
+            if self._is_lethal(mapped_spike, direction):
                 raise ValueError("Droplet Destroyed")
 
     def _is_lethal(self, stat: StationaryPieceType, direction: Direction) -> bool:
@@ -171,11 +193,15 @@ class Box(Movable):
         pygame.draw.rect(screen, (139, 69, 19), rect)
         pygame.draw.rect(screen, (80, 40, 10), rect, 2)
 
-    def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction) -> bool:
+    def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction, global_direction: Optional[Direction] = None) -> bool:
         if stat == StationaryPieceType.WALL: return True
-        return stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
+        if stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
                         StationaryPieceType.SPIKE_LEFT, StationaryPieceType.SPIKE_RIGHT, 
-                        StationaryPieceType.SPIKE_OMNI}
+                        StationaryPieceType.SPIKE_OMNI}:
+            return True
+        if stat == StationaryPieceType.ROTATABLE_SPIKE:
+            return True
+        return False
 
     def can_move_into(self, target: Optional[Entity], direction: Direction) -> bool:
         if target is None: return True
@@ -193,22 +219,51 @@ class Box(Movable):
 
 class StationaryPiece:
     @staticmethod
-    def render(screen, stat: StationaryPieceType, px, py, tile_size):
+    def render(screen, stat: StationaryPieceType, px, py, tile_size, global_direction: Optional[Direction] = Direction.RIGHT):
         rect = pygame.Rect(px, py, tile_size, tile_size)
         if stat == StationaryPieceType.WALL:
             pygame.draw.rect(screen, (60, 60, 60), rect)
             pygame.draw.rect(screen, (40, 40, 40), rect, 2)
-        elif stat != StationaryPieceType.EMPTY:
-            pygame.draw.rect(screen, (255, 0, 0), rect)
+        elif stat == StationaryPieceType.BUTTON:
+            # Button is a small red arrow
             center = rect.center
-            if stat == StationaryPieceType.SPIKE_OMNI:
+            r = tile_size // 6
+            color = (255, 0, 0)
+            if global_direction:
+                dy, dx = global_direction.value
+                tip = (center[0] + dx * r * 2, center[1] + dy * r * 2)
+                # Drawing a simple triangle arrow
+                if global_direction == Direction.UP: pts = [tip, (tip[0]-5, tip[1]+10), (tip[0]+5, tip[1]+10)]
+                elif global_direction == Direction.DOWN: pts = [tip, (tip[0]-5, tip[1]-10), (tip[0]+5, tip[1]-10)]
+                elif global_direction == Direction.LEFT: pts = [tip, (tip[0]+10, tip[1]-5), (tip[0]+10, tip[1]+5)]
+                else: pts = [tip, (tip[0]-10, tip[1]-5), (tip[0]-10, tip[1]+5)]
+                pygame.draw.polygon(screen, color, pts)
+        elif stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
+                    StationaryPieceType.SPIKE_LEFT, StationaryPieceType.SPIKE_RIGHT, 
+                    StationaryPieceType.SPIKE_OMNI, StationaryPieceType.ROTATABLE_SPIKE}:
+            color = (255, 0, 0) if stat != StationaryPieceType.ROTATABLE_SPIKE else (255, 165, 0) # Orange for rotatable
+            pygame.draw.rect(screen, color, rect)
+            center = rect.center
+            
+            # For ROTATABLE_SPIKE, we use global_direction to determine visual arrow
+            effective_stat = stat
+            if stat == StationaryPieceType.ROTATABLE_SPIKE and global_direction:
+                spike_map = {
+                    Direction.UP: StationaryPieceType.SPIKE_UP,
+                    Direction.DOWN: StationaryPieceType.SPIKE_DOWN,
+                    Direction.LEFT: StationaryPieceType.SPIKE_LEFT,
+                    Direction.RIGHT: StationaryPieceType.SPIKE_RIGHT
+                }
+                effective_stat = spike_map[global_direction]
+
+            if effective_stat == StationaryPieceType.SPIKE_OMNI:
                 points = []
                 for i in range(8):
                     angle = i * math.pi / 4
                     r = tile_size // 4 if i % 2 == 0 else tile_size // 8
                     points.append((center[0] + r * math.cos(angle), center[1] + r * math.sin(angle)))
                 pygame.draw.polygon(screen, (255, 255, 255), points)
-            else:
+            elif effective_stat != StationaryPieceType.ROTATABLE_SPIKE:
                 r = tile_size // 4
                 arrow_map = {
                     StationaryPieceType.SPIKE_UP: (0, -r),
@@ -216,13 +271,13 @@ class StationaryPiece:
                     StationaryPieceType.SPIKE_LEFT: (-r, 0),
                     StationaryPieceType.SPIKE_RIGHT: (r, 0)
                 }
-                offset = arrow_map[stat]
+                offset = arrow_map[effective_stat]
                 tip = (center[0] + offset[0], center[1] + offset[1])
-                if stat == StationaryPieceType.SPIKE_UP:
+                if effective_stat == StationaryPieceType.SPIKE_UP:
                     pts = [tip, (tip[0]-10, tip[1]+15), (tip[0]+10, tip[1]+15)]
-                elif stat == StationaryPieceType.SPIKE_DOWN:
+                elif effective_stat == StationaryPieceType.SPIKE_DOWN:
                     pts = [tip, (tip[0]-10, tip[1]-15), (tip[0]+10, tip[1]-15)]
-                elif stat == StationaryPieceType.SPIKE_LEFT:
+                elif effective_stat == StationaryPieceType.SPIKE_LEFT:
                     pts = [tip, (tip[0]+15, tip[1]-10), (tip[0]+15, tip[1]+10)]
                 else:
                     pts = [tip, (tip[0]-15, tip[1]-10), (tip[0]-15, tip[1]+10)]
@@ -254,29 +309,32 @@ class BoardSetup:
 
 class SimState:
     """Internal helper to manage the simulation of a single move."""
-    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate]):
+    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], global_direction: Optional[Direction] = None):
         self.setup = setup
         self.droplets = droplets
         self.boxes = boxes
         self.pearls = pearls
         self.gates = gates
+        self.global_direction = global_direction
         self.moving_pieces: Set[Movable] = set()
         self.to_remove: Set[Entity] = set()
 
 class BoardState:
-    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate]):
+    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], global_direction: Optional[Direction] = Direction.RIGHT):
         self.setup = setup
         self.droplets = sorted(droplets, key=lambda x: x.get_sort_key())
         self.boxes = sorted(boxes, key=lambda x: x.get_sort_key())
         self.pearls = sorted(pearls, key=lambda x: x.get_sort_key())
         self.gates = sorted(gates, key=lambda x: x.get_sort_key())
+        self.global_direction = global_direction
 
     def get_id(self):
         return (
             tuple(d.get_sort_key() for d in self.droplets),
             tuple(b.get_sort_key() for b in self.boxes),
             tuple(p.get_sort_key() for p in self.pearls),
-            tuple(g.get_sort_key() for g in self.gates)
+            tuple(g.get_sort_key() for g in self.gates),
+            self.global_direction.name if self.global_direction else None
         )
 
     def is_solved(self):
@@ -297,13 +355,13 @@ class BoardState:
         for i, p in enumerate(temp_pearls): p._uuid = f"p{i}"
         for i, g in enumerate(temp_gates): g._uuid = f"g{i}"
 
-        sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates)
+        sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates, global_direction=self.global_direction)
         sim.moving_pieces.add(sim.droplets[droplet_idx])
         
         # history tracks (piece_id, loc, direction) for all moving pieces to detect infinite loops
         history = set()
         intermediate_states = [BoardState(self.setup, copy.deepcopy(sim.droplets), copy.deepcopy(sim.boxes), 
-                                         copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates))]
+                                         copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates), global_direction=sim.global_direction)]
 
         while sim.moving_pieces:
             # 1. Detect Infinite Loop
@@ -313,7 +371,8 @@ class BoardState:
                 tuple(sorted(d.get_sort_key() for d in sim.droplets)),
                 tuple(sorted(b.get_sort_key() for b in sim.boxes)),
                 tuple(sorted(p.get_sort_key() for p in sim.pearls)),
-                tuple(sorted(g.get_sort_key() for g in sim.gates))
+                tuple(sorted(g.get_sort_key() for g in sim.gates)),
+                sim.global_direction.name if sim.global_direction else None
             )
             if current_signature in history:
                 raise InfiniteLoopError("Infinite loop detected in move simulation")
@@ -337,14 +396,14 @@ class BoardState:
                 stat = self.setup.get_stationary_at(target_loc)
                 
                 # Stationary piece blockers
-                if p.is_blocked_by_stationary(stat, direction):
+                if p.is_blocked_by_stationary(stat, direction, sim.global_direction):
                     to_stop.add(p)
                     continue
                 
                 # Droplet lethality check
                 if isinstance(p, Droplet):
                     try:
-                        p.handle_stationary_collision(stat, direction)
+                        p.handle_stationary_collision(stat, direction, sim.global_direction)
                     except ValueError:
                         sim.to_remove.add(p)
                         continue
@@ -416,6 +475,10 @@ class BoardState:
                     if other: p.loc = other.loc
 
                 p.loc = self.setup.wrap_loc(p.loc)
+
+                # Button logic
+                if self.setup.get_stationary_at(p.loc) == StationaryPieceType.BUTTON:
+                    sim.global_direction = direction
                 
                 # Interaction logic
                 target_ent = self._get_dynamic_at(p.loc, sim, exclude=p)
@@ -433,17 +496,17 @@ class BoardState:
             
             # Save intermediate state for animation
             intermediate_states.append(BoardState(self.setup, copy.deepcopy(sim.droplets), copy.deepcopy(sim.boxes), 
-                                                 copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates)))
+                                                 copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates), global_direction=sim.global_direction))
             
             if not sim.pearls: # Immediate Win
-                final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
+                final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, global_direction=sim.global_direction)
                 return final_state, intermediate_states
             
             # If all droplets are gone but pearls remain, failure
             if not sim.droplets:
                 return None
 
-        final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates)
+        final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, global_direction=sim.global_direction)
         return final_state, intermediate_states
 
 

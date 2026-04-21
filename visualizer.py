@@ -36,7 +36,7 @@ def draw_board(screen, state):
     for y in range(state.setup.height):
         for x in range(state.setup.width):
             px, py = get_pixel_pos(Loc(y, x))
-            StationaryPiece.render(screen, state.setup.get_stationary_at(Loc(y, x)), px, py, TILE_SIZE)
+            StationaryPiece.render(screen, state.setup.get_stationary_at(Loc(y, x)), px, py, TILE_SIZE, global_direction=state.global_direction)
     for portal in state.setup.portals:
         px, py = get_pixel_pos(portal.loc)
         portal.render(screen, px, py, TILE_SIZE)
@@ -62,7 +62,7 @@ def draw_board_interpolated(screen, state1, state2, alpha):
     for y in range(state1.setup.height):
         for x in range(state1.setup.width):
             px, py = get_pixel_pos(Loc(y, x))
-            StationaryPiece.render(screen, state1.setup.get_stationary_at(Loc(y, x)), px, py, TILE_SIZE)
+            StationaryPiece.render(screen, state1.setup.get_stationary_at(Loc(y, x)), px, py, TILE_SIZE, global_direction=state1.global_direction)
     for portal in state1.setup.portals:
         px, py = get_pixel_pos(portal.loc)
         portal.render(screen, px, py, TILE_SIZE)

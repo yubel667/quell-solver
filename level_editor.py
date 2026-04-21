@@ -4,7 +4,7 @@ import os
 import numpy as np
 import json
 from board import (
-    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType
+    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType, Direction
 )
 import board_io
 import visualizer as vis
@@ -23,12 +23,13 @@ class LevelEditor:
         self.boxes = []
         self.pearls = []
         self.gates = []
+        self.global_direction = Direction.RIGHT
         
         # Editor state
         self.selected_tool = "WALL"
         self.current_portal_id = "1"
         self.tools = [
-            "WALL", "SPIKE_UP", "SPIKE_OMNI",
+            "WALL", "SPIKE_UP", "SPIKE_OMNI", "BUTTON", "ROTATABLE_SPIKE",
             "DROPLET", "BOX", "PEARL", "PORTAL", "GATE_OPEN", "GATE_CLOSED", "EMPTY"
         ]
         
@@ -46,13 +47,14 @@ class LevelEditor:
                 self.boxes = state.boxes
                 self.pearls = state.pearls
                 self.gates = state.gates
+                self.global_direction = state.global_direction
         except Exception as e:
             print(f"Error loading level: {e}")
 
     def save(self):
         try:
             setup = BoardSetup(self.grid, self.portals)
-            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates)
+            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, global_direction=self.global_direction)
             os.makedirs("questions", exist_ok=True)
             with open(self.file_path, "w") as f:
                 f.write(board_io.serialize_board(state))
@@ -104,6 +106,8 @@ class LevelEditor:
 
             self.remove_entity_at(loc)
             if self.selected_tool == "WALL": self.grid[y, x] = StationaryPieceType.WALL.value
+            elif self.selected_tool == "BUTTON": self.grid[y, x] = StationaryPieceType.BUTTON.value
+            elif self.selected_tool == "ROTATABLE_SPIKE": self.grid[y, x] = StationaryPieceType.ROTATABLE_SPIKE.value
             elif self.selected_tool.startswith("SPIKE"): self.grid[y, x] = getattr(StationaryPieceType, self.selected_tool).value
             elif self.selected_tool == "EMPTY": self.grid[y, x] = StationaryPieceType.EMPTY.value
             elif self.selected_tool == "DROPLET": self.droplets.append(Droplet(loc))
@@ -137,6 +141,11 @@ class LevelEditor:
                    StationaryPieceType.SPIKE_DOWN: StationaryPieceType.SPIKE_LEFT,
                    StationaryPieceType.SPIKE_LEFT: StationaryPieceType.SPIKE_UP}
             self.grid[loc.y, loc.x] = rot[stat].value
+        elif stat == StationaryPieceType.BUTTON:
+            # Cycle global direction
+            dirs = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT]
+            idx = dirs.index(self.global_direction)
+            self.global_direction = dirs[(idx + 1) % len(dirs)]
         for g in self.gates:
             if g.loc == loc: g.is_closed = not g.is_closed
 
@@ -171,7 +180,7 @@ class LevelEditor:
             vis.TILE_SIZE = tile_size
             
             setup = BoardSetup(self.grid, self.portals)
-            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates)
+            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, global_direction=self.global_direction)
             vis.draw_board(screen, state)
             
             vis.TILE_SIZE = old_tile_size # Restore
