@@ -319,12 +319,17 @@ class BoardState:
                 for p in list(sim.moving_pieces):
                     target_loc = p.loc + direction
                     target_ent = self._get_dynamic_at(target_loc, sim)
-                    if isinstance(target_ent, Box) and target_ent not in sim.moving_pieces:
+                    # A Box is only added to the moving set if it is pushed by a Droplet.
+                    # If a Box is pushed by another Box, we don't add it to the moving set here;
+                    # instead, the moving Box will collide with the stationary Box and they will vanish.
+                    if isinstance(p, Droplet) and isinstance(target_ent, Box) and target_ent not in sim.moving_pieces:
                         sim.moving_pieces.add(target_ent)
                         changed = True
 
             # 3. Check for blockers
             can_move = True
+            # Sort moving pieces by position in movement direction to handle chains correctly?
+            # Actually, we just need to know if ANY piece in the chain is blocked.
             for p in list(sim.moving_pieces):
                 target_loc = p.loc + direction
                 stat = self.setup.get_stationary_at(target_loc)
@@ -341,15 +346,26 @@ class BoardState:
                         continue
 
                 target_ent = self._get_dynamic_at(target_loc, sim)
+                # If target is another piece NOT in the moving set, check if we can move into it
                 if target_ent and target_ent not in sim.moving_pieces:
                     if not p.can_move_into(target_ent, direction):
                         can_move = False; break
+                # Note: collision between two moving pieces (e.g. two boxes) is handled in step 4.
 
             if not can_move and not sim.to_remove: break
 
             # 4. Execute Step
             gates_to_toggle = []
-            for p in list(sim.moving_pieces):
+            moving_list = list(sim.moving_pieces)
+            
+            # To handle interactions correctly, we need to know where everyone is GOING
+            # especially for box-box annihilation.
+            new_locs = {}
+            for p in moving_list:
+                if p in sim.to_remove: continue
+                new_locs[p._uuid] = self.setup.wrap_loc(p.loc + direction)
+
+            for p in moving_list:
                 if p in sim.to_remove: continue
 
                 # Leaving gate: Find gate at current location before moving
@@ -360,23 +376,29 @@ class BoardState:
 
                 p.loc = p.loc + direction
                 
-                # Interaction logic - exclude self to avoid self-collision
-                p.handle_collision(self._get_dynamic_at(p.loc, sim, exclude=p), sim)
-
                 # Portal logic
                 portal = self.setup.get_portal_at(p.loc)
                 if portal:
                     other = self.setup.get_other_portal(portal)
                     if other: p.loc = other.loc
-                
-                # Final wrap
+
                 p.loc = self.setup.wrap_loc(p.loc)
+                
+                # Check for collision at NEW location
+                # 1. Collision with static-dynamic (Pearl, merged Droplet, pusher-Box chain handled by expansion)
+                # 2. Collision with another MOVING piece (Box annihilation)
+                
+                # Exclude self from dynamic check
+                target_ent = self._get_dynamic_at(p.loc, sim, exclude=p)
+                p.handle_collision(target_ent, sim)
 
             # Finalize step side effects
             for g in gates_to_toggle: g.is_closed = True
-            for e in sim.to_remove:
-                if isinstance(e, Droplet): sim.droplets.remove(e)
-                elif isinstance(e, Box): sim.boxes.remove(e)
+            for e in list(sim.to_remove):
+                if isinstance(e, Droplet):
+                    if e in sim.droplets: sim.droplets.remove(e)
+                elif isinstance(e, Box):
+                    if e in sim.boxes: sim.boxes.remove(e)
                 if e in sim.moving_pieces: sim.moving_pieces.remove(e)
             sim.to_remove.clear()
             

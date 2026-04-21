@@ -7,4 +7,4 @@ if [ -z "$1" ]; then
 fi
 
 # Run the editor, and if it exits successfully (e.g. via SAVE), run the solver with autoplay
-python3 level_editor.py "$1" && python3 solver_ui.py "$1" --autoplay
+python3 level_editor.py "$1" && python3 solver_ui.py "$1"
