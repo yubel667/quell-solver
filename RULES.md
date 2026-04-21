@@ -22,7 +22,7 @@ Portal always come in pairs and each have a unique id.
 Most entities occupy a space and are mutually exclusive, can only occupy 1 cell of the grid.
 
 The game state changes by moving droplet. a play can make a drople attempt to move on 1 of the 4 direction. a then it follow this rule when encountering other entities, until infinite loop (failure), all pearls collected (success) or all movable object stops or destroys.:
-- empty: droplet will keep moving in the same direction.
+- empty: droplet will keep moving in the same direction. note that if out of boundary, it would check the other side of the board (so up is connected to bottom and left is connected to right.)
 - another droplet: the stationary droplet will disappear (because it merges with the other droplet), moving droplet keep moving in the same direction.
 - wall: droplet would stop.
 - Spike: droplet will be destroyed.

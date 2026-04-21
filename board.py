@@ -233,13 +233,15 @@ class BoardSetup:
         self.height, self.width = grid.shape
         self.portal_map = {p.loc: p for p in portals}
 
+    def wrap_loc(self, loc: Loc) -> Loc:
+        return Loc(loc.y % self.height, loc.x % self.width)
+
     def get_stationary_at(self, loc: Loc) -> StationaryPieceType:
-        if 0 <= loc.y < self.height and 0 <= loc.x < self.width:
-            return StationaryPieceType(self.grid[loc.y, loc.x])
-        return StationaryPieceType.WALL
+        wrapped = self.wrap_loc(loc)
+        return StationaryPieceType(self.grid[wrapped.y, wrapped.x])
 
     def get_portal_at(self, loc: Loc) -> Optional[Portal]:
-        return self.portal_map.get(loc)
+        return self.portal_map.get(self.wrap_loc(loc))
 
     def get_other_portal(self, portal: Portal) -> Optional[Portal]:
         for p in self.portals:
@@ -361,6 +363,9 @@ class BoardState:
                 if portal:
                     other = self.setup.get_other_portal(portal)
                     if other: p.loc = other.loc
+                
+                # Final wrap
+                p.loc = self.setup.wrap_loc(p.loc)
 
             # Finalize step side effects
             for g in gates_to_toggle: g.is_closed = not g.is_closed
@@ -387,8 +392,9 @@ class BoardState:
 
 
     def _get_dynamic_at(self, loc: Loc, sim: SimState, exclude: Optional[Entity] = None) -> Optional[Entity]:
+        wrapped_loc = self.setup.wrap_loc(loc)
         for collection in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
             for item in collection:
                 if item == exclude: continue
-                if item.loc == loc: return item
+                if item.loc == wrapped_loc: return item
         return None

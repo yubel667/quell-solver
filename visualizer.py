@@ -14,8 +14,13 @@ def get_pixel_pos(loc: Loc):
     return MARGIN + loc.x * TILE_SIZE, MARGIN + loc.y * TILE_SIZE
 
 def get_pixel_pos_interpolated(loc1: Loc, loc2: Loc, alpha: float):
-    # Handle portal "jumps" - if distance > 1.5 cells, don't interpolate
-    if abs(loc1.x - loc2.x) > 1.5 or abs(loc1.y - loc2.y) > 1.5:
+    # Handle portal "jumps" and toroidal wrap-around
+    # If distance > 1.5 cells, don't interpolate (snap at 0.5)
+    # We use 1.5 to distinguish between normal move and any jump (portal or wrap)
+    dx = abs(loc1.x - loc2.x)
+    dy = abs(loc1.y - loc2.y)
+    
+    if dx > 1.5 or dy > 1.5:
         return get_pixel_pos(loc2 if alpha > 0.5 else loc1)
     
     x = loc1.x + (loc2.x - loc1.x) * alpha
@@ -143,6 +148,10 @@ def run_visualizer(initial_state, solution, autoplay=False, show_controls=True, 
                 if event.key == pygame.K_ESCAPE: running = False
                 elif event.key in [pygame.K_SPACE, pygame.K_RETURN] and is_solved:
                     running = False
+                elif event.key == pygame.K_RETURN:
+                    paused = not paused
+                    in_step_delay = False
+                    stop_after_step = False
                 elif event.key == pygame.K_SPACE:
                     # Play NEXT step then stop
                     if step_idx < len(steps_frames) - 1:
@@ -245,7 +254,7 @@ def run_visualizer(initial_state, solution, autoplay=False, show_controls=True, 
 
         if show_controls:
             ctrl_font = get_font(20)
-            controls = ["SPACE: Play Next Step", "RIGHT/LEFT: Jump to Step", "R: Reset", "ESC: Quit"]
+            controls = ["ENTER: Toggle Auto-play", "SPACE: Play Next Step", "RIGHT/LEFT: Jump to Step", "R: Reset", "ESC: Quit"]
             for i, line in enumerate(controls):
                 screen.blit(ctrl_font.render(line, True, (150, 150, 150)), (MARGIN, status_y + 40 + i * 20))
         
