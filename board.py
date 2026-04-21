@@ -122,6 +122,9 @@ class Droplet(Movable):
     def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction) -> bool:
         if stat == StationaryPieceType.WALL:
             return True
+        if stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
+                    StationaryPieceType.SPIKE_LEFT, StationaryPieceType.SPIKE_RIGHT}:
+            return not self._is_lethal(stat, direction)
         return False
 
     def handle_stationary_collision(self, stat: StationaryPieceType, direction: Direction):
@@ -349,9 +352,11 @@ class BoardState:
             for p in list(sim.moving_pieces):
                 if p in sim.to_remove: continue
 
-                # Leaving gate
-                old_ent = self._get_dynamic_at(p.loc, sim)
-                if isinstance(old_ent, Gate): gates_to_toggle.append(old_ent)
+                # Leaving gate: Find gate at current location before moving
+                for g in sim.gates:
+                    if g.loc == p.loc:
+                        gates_to_toggle.append(g)
+                        break
 
                 p.loc = p.loc + direction
                 
@@ -368,7 +373,7 @@ class BoardState:
                 p.loc = self.setup.wrap_loc(p.loc)
 
             # Finalize step side effects
-            for g in gates_to_toggle: g.is_closed = not g.is_closed
+            for g in gates_to_toggle: g.is_closed = True
             for e in sim.to_remove:
                 if isinstance(e, Droplet): sim.droplets.remove(e)
                 elif isinstance(e, Box): sim.boxes.remove(e)
