@@ -77,7 +77,7 @@ class Gate(Entity):
             for dy in [-1, 0, 1]:
                 for dx in [-1, 0, 1]:
                     c = (center[0] + dx * 15, center[1] + dy * 15)
-                    pygame.draw.circle(screen, color, c, 3)
+                    pygame.draw.circle(screen, color, c, 5)
 
 _PORTAL_FONT = None
 

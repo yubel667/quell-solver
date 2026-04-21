@@ -1,0 +1,51 @@
+--- GRID ---
+0 0 0 0
+0 0 0 0
+0 0 0 0
+0 0 0 0
+
+--- PORTALS ---
+[]
+
+--- DYNAMIC ---
+{
+  "droplets": [
+    {
+      "y": 1,
+      "x": 0
+    }
+  ],
+  "boxes": [],
+  "pearls": [
+    {
+      "y": 1,
+      "x": 2
+    },
+    {
+      "y": 3,
+      "x": 3
+    }
+  ],
+  "gates": [
+    {
+      "y": 0,
+      "x": 3,
+      "closed": false
+    },
+    {
+      "y": 1,
+      "x": 1,
+      "closed": false
+    },
+    {
+      "y": 2,
+      "x": 2,
+      "closed": false
+    },
+    {
+      "y": 3,
+      "x": 0,
+      "closed": false
+    }
+  ]
+}
