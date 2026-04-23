@@ -4,12 +4,14 @@ import os
 import numpy as np
 import json
 from board import (
-    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType, Direction
+    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType, Direction, GoldenWall
 )
 import board_io
 import visualizer as vis
 
 class LevelEditor:
+    SIDEBAR_W = 400
+
     def __init__(self, level_id):
         self.level_id = level_id
         self.file_path = f"questions/{level_id}.txt"
@@ -29,11 +31,19 @@ class LevelEditor:
         # Editor state
         self.selected_tool = "WALL"
         self.current_portal_id = "1"
-        self.tools = [
-            "WALL", "SPIKE_UP", "SPIKE_OMNI", "BUTTON", "ROTATABLE_SPIKE",
-            "DROPLET", "GOLDEN_DROPLET", "BOX", "PEARL", "GOLDEN_PEARL", 
-            "GOLDEN_WALL", "PORTAL", "GATE_OPEN", "GATE_CLOSED", "EMPTY", "VOID"
+        self.tool_rows = [
+            ["DROPLET", "GOLDEN_DROPLET"],
+            ["PEARL", "GOLDEN_PEARL"],
+            ["WALL", "GOLDEN_WALL"],
+            ["BOX"],
+            ["SPIKE_UP", "SPIKE_OMNI"],
+            ["BUTTON", "ROTATABLE_SPIKE"],
+            ["PORTAL"],
+            ["GATE_OPEN", "GATE_CLOSED"],
+            ["EMPTY", "VOID"]
         ]
+        # Flatten tools for indexing (PgUp/Dn)
+        self.tools = [t for row in self.tool_rows for t in row]
         
         if os.path.exists(self.file_path):
             self.load()
@@ -86,16 +96,18 @@ class LevelEditor:
 
     def handle_click(self, pos, button, is_drag=False, tile_size=None):
         if tile_size is None: tile_size = vis.TILE_SIZE
-        sidebar_w = 250
-        sidebar_x = pygame.display.get_surface().get_width() - sidebar_w
+        sidebar_x = pygame.display.get_surface().get_width() - self.SIDEBAR_W
         if pos[0] >= sidebar_x:
             if button == 1 and not is_drag:
                 y_off = 20
-                for tool in self.tools:
-                    rect = pygame.Rect(sidebar_x + 20, y_off, 200, 25)
-                    if rect.collidepoint(pos):
-                        self.selected_tool = tool
-                        return
+                for row in self.tool_rows:
+                    x_off = 20
+                    for tool in row:
+                        rect = pygame.Rect(sidebar_x + x_off, y_off, 120, 25)
+                        if rect.collidepoint(pos):
+                            self.selected_tool = tool
+                            return
+                        x_off += 130
                     y_off += 30
             return
 
@@ -171,10 +183,9 @@ class LevelEditor:
 
     def run(self):
         pygame.init()
-        sidebar_w = 250
         base_w = 800
         base_h = 800
-        screen = pygame.display.set_mode((base_w + sidebar_w, base_h))
+        screen = pygame.display.set_mode((base_w + self.SIDEBAR_W, base_h))
         pygame.display.set_caption(f"Quell Level Editor - {self.level_id}")
         clock = pygame.time.Clock()
         
@@ -183,25 +194,28 @@ class LevelEditor:
         while True:
             screen.fill((50, 50, 50))
             
-            tile_size = self.get_scaled_params(screen.get_width(), screen.get_height(), sidebar_w)
+            tile_size = self.get_scaled_params(screen.get_width(), screen.get_height(), self.SIDEBAR_W)
             # Temporarily override visualizer tile size for drawing
             old_tile_size = vis.TILE_SIZE
             vis.TILE_SIZE = tile_size
             
             setup = BoardSetup(self.grid, self.portals)
-            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, global_direction=self.global_direction)
+            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls, global_direction=self.global_direction)
             vis.draw_board(screen, state)
             
             vis.TILE_SIZE = old_tile_size # Restore
 
-            sidebar_x = screen.get_width() - sidebar_w
-            sidebar_rect = pygame.Rect(sidebar_x, 0, sidebar_w, screen.get_height())
+            sidebar_x = screen.get_width() - self.SIDEBAR_W
+            sidebar_rect = pygame.Rect(sidebar_x, 0, self.SIDEBAR_W, screen.get_height())
             pygame.draw.rect(screen, (30, 30, 30), sidebar_rect)
             
             y_off = 20
-            for tool in self.tools:
-                color = (255, 255, 0) if self.selected_tool == tool else (200, 200, 200)
-                screen.blit(font.render(tool, True, color), (sidebar_rect.x + 20, y_off))
+            for row in self.tool_rows:
+                x_off = 20
+                for tool in row:
+                    color = (255, 255, 0) if self.selected_tool == tool else (200, 200, 200)
+                    screen.blit(font.render(tool, True, color), (sidebar_rect.x + x_off, y_off))
+                    x_off += 130
                 y_off += 30
             
             y_off += 20
