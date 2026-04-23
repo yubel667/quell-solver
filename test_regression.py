@@ -25,7 +25,7 @@ def run_regression(full=False, max_visited=500):
     for filename in files:
         with open(os.path.join(solutions_dir, filename), "r") as f:
             data = json.load(f)
-        
+
         level_id = data["level_id"]
         expected_steps = data["steps"]
         recorded_visited = data["visited"]
@@ -52,10 +52,10 @@ def run_regression(full=False, max_visited=500):
         actual_steps = len(solution) if solution is not None else None
 
         if actual_steps == expected_steps:
-            print(f"PASSED: {level_id:20} | Steps: {actual_steps:2} | Visited: {visited:5} | Time: {duration:.4f}s")
+            print(f"PASSED: {level_id} | Steps: {actual_steps} | Visited: {visited} | Time: {duration}s")
             passed += 1
         else:
-            print(f"FAILED: {level_id:20} | Expected: {expected_steps} | Actual: {actual_steps} | Visited: {visited}")
+            print(f"FAILED: {level_id} | Expected: {expected_steps} | Actual: {actual_steps} | Visited: {visited}")
             failed += 1
 
     print("-" * 60)

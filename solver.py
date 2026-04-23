@@ -97,7 +97,7 @@ def main():
     else:
         # Assume levels are in questions/
         if not level_id.endswith(".txt"):
-            file_path = f"quell-solver/questions/{level_id}.txt"
+            file_path = f"questions/{level_id}.txt"
             level_name = level_id
         else:
             file_path = level_id
