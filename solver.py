@@ -2,6 +2,7 @@ import heapq
 import time
 import json
 import sys
+import os
 from typing import List, Tuple, Optional, Dict
 from board import BoardState, Direction, InfiniteLoopError
 import board_io
@@ -83,19 +84,24 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
     return None, len(came_from), end_time - start_time
 
 def main():
-    if len(sys.argv) < 2:
-        print("Usage: python3 solver.py <level_id>")
-        return
+    import argparse
+    parser = argparse.ArgumentParser(description="Quell Solver")
+    parser.add_argument("level_id", help="Level ID or file path. Use '-' for stdin.")
+    parser.add_argument("--record", action="store_true", help="Record the solution to solutions/ folder")
+    args = parser.parse_args()
 
-    level_id = sys.argv[1]
+    level_id = args.level_id
     if level_id == "-":
         content = sys.stdin.read()
+        level_name = "stdin"
     else:
         # Assume levels are in questions/
         if not level_id.endswith(".txt"):
             file_path = f"quell-solver/questions/{level_id}.txt"
+            level_name = level_id
         else:
             file_path = level_id
+            level_name = os.path.basename(file_path).replace(".txt", "")
             
         try:
             with open(file_path, 'r') as f:
@@ -112,19 +118,34 @@ def main():
 
     solution, visited_count, duration = solve(initial_state)
 
+    result = {}
     if solution is None:
-        print(json.dumps({
+        result = {
             "error": "No solution found",
             "visited": visited_count,
             "time": f"{duration:.4f}s"
-        }, indent=2))
+        }
     else:
-        print(json.dumps({
+        result = {
             "solution": solution,
             "visited": visited_count,
             "time": f"{duration:.4f}s",
             "steps": len(solution)
-        }, indent=2))
+        }
+    
+    print(json.dumps(result, indent=2))
+
+    if args.record and level_name != "stdin":
+        os.makedirs("solutions", exist_ok=True)
+        record_path = f"solutions/{level_name}.json"
+        record_data = {
+            "level_id": level_name,
+            "steps": len(solution) if solution is not None else None,
+            "visited": visited_count
+        }
+        with open(record_path, "w") as f:
+            json.dump(record_data, f, indent=2)
+        print(f"Recorded to {record_path}")
 
 if __name__ == "__main__":
     main()
