@@ -298,13 +298,24 @@ class BoardSetup:
         return Loc(loc.y % self.height, loc.x % self.width)
 
     def get_next_loc(self, loc: Loc, direction: Direction) -> Loc:
-        """Finds the next non-VOID location in the given direction, wrapping as needed."""
+        """Finds the next non-VOID location in the given direction.
+        If hitting a VOID, searches in the opposite direction for the other end of the non-VOID segment.
+        """
+        target = self.wrap_loc(loc + direction)
+        if self.grid[target.y, target.x] != StationaryPieceType.VOID.value:
+            return target
+        
+        # Hit a VOID. Per rules, move in opposite direction to find the "other side"
+        # of the current non-VOID segment.
+        opp_val = (-direction.value[0], -direction.value[1])
+        opp_dir = next(d for d in Direction if d.value == opp_val)
+        
         curr = loc
         while True:
-            curr = self.wrap_loc(curr + direction)
-            if self.grid[curr.y, curr.x] != StationaryPieceType.VOID.value:
+            test = self.wrap_loc(curr + opp_dir)
+            if self.grid[test.y, test.x] == StationaryPieceType.VOID.value:
                 return curr
-            # Safety break for all-VOID board
+            curr = test
             if curr == loc:
                 return loc
 
