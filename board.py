@@ -47,6 +47,11 @@ class Entity:
         self.loc = loc
         self._uuid = None
 
+    def clone(self):
+        new_e = self.__class__(self.loc)
+        new_e._uuid = self._uuid
+        return new_e
+
     def get_sort_key(self) -> Tuple:
         raise NotImplementedError()
 
@@ -66,6 +71,11 @@ class Gate(Entity):
     def __init__(self, loc: Loc, is_closed: bool = False):
         super().__init__(loc)
         self.is_closed = is_closed
+
+    def clone(self):
+        new_e = Gate(self.loc, self.is_closed)
+        new_e._uuid = self._uuid
+        return new_e
 
     def get_sort_key(self):
         return ("g", self.loc.y, self.loc.x, self.is_closed)
@@ -87,6 +97,11 @@ class Portal(Entity):
     def __init__(self, loc: Loc, portal_id: str):
         super().__init__(loc)
         self.portal_id = portal_id
+
+    def clone(self):
+        new_e = Portal(self.loc, self.portal_id)
+        new_e._uuid = self._uuid
+        return new_e
 
     def get_sort_key(self):
         return ("o", self.portal_id, self.loc.y, self.loc.x)
@@ -368,17 +383,22 @@ class BoardState:
         return len(self.droplets)
 
     def get_next_state(self, droplet_idx: int, direction: Direction, include_intermediates: bool = False) -> Optional[Tuple['BoardState', List['BoardState']]]:
-        # Fast manual cloning instead of copy.deepcopy
-        temp_droplets = [Droplet(d.loc) for d in self.droplets]
-        temp_boxes = [Box(b.loc) for b in self.boxes]
-        temp_pearls = [Pearl(p.loc) for p in self.pearls]
-        temp_gates = [Gate(g.loc, g.is_closed) for g in self.gates]
+        # Fast manual cloning
+        temp_droplets = [d.clone() for d in self.droplets]
+        temp_boxes = [b.clone() for b in self.boxes]
+        temp_pearls = [p.clone() for p in self.pearls]
+        temp_gates = [g.clone() for g in self.gates]
         
         if include_intermediates:
-            for i, d in enumerate(temp_droplets): d._uuid = f"d{i}"
-            for i, b in enumerate(temp_boxes): b._uuid = f"b{i}"
-            for i, p in enumerate(temp_pearls): p._uuid = f"p{i}"
-            for i, g in enumerate(temp_gates): g._uuid = f"g{i}"
+            # Only assign UUIDs if they don't exist yet (for visualizer interpolation)
+            for i, d in enumerate(temp_droplets): 
+                if d._uuid is None: d._uuid = f"d{i}"
+            for i, b in enumerate(temp_boxes):
+                if b._uuid is None: b._uuid = f"b{i}"
+            for i, p in enumerate(temp_pearls):
+                if p._uuid is None: p._uuid = f"p{i}"
+            for i, g in enumerate(temp_gates):
+                if g._uuid is None: g._uuid = f"g{i}"
 
         sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates, global_direction=self.global_direction)
         sim.moving_pieces.add(sim.droplets[droplet_idx])
@@ -393,10 +413,10 @@ class BoardState:
         history = set()
         intermediate_states = []
         if include_intermediates:
-            intermediate_states.append(BoardState(self.setup, [Droplet(d.loc) for d in sim.droplets], 
-                                                 [Box(b.loc) for b in sim.boxes], 
-                                                 [Pearl(p.loc) for p in sim.pearls], 
-                                                 [Gate(g.loc, g.is_closed) for g in sim.gates], 
+            intermediate_states.append(BoardState(self.setup, [d.clone() for d in sim.droplets], 
+                                                 [b.clone() for b in sim.boxes], 
+                                                 [p.clone() for p in sim.pearls], 
+                                                 [g.clone() for g in sim.gates], 
                                                  global_direction=sim.global_direction))
 
         while sim.moving_pieces:
@@ -552,10 +572,10 @@ class BoardState:
                     sim.dynamic_map[item.loc.to_tuple()] = item
 
             if include_intermediates:
-                intermediate_states.append(BoardState(self.setup, [Droplet(d.loc) for d in sim.droplets], 
-                                                     [Box(b.loc) for b in sim.boxes], 
-                                                     [Pearl(p.loc) for p in sim.pearls], 
-                                                     [Gate(g.loc, g.is_closed) for g in sim.gates], 
+                intermediate_states.append(BoardState(self.setup, [d.clone() for d in sim.droplets], 
+                                                     [b.clone() for b in sim.boxes], 
+                                                     [p.clone() for p in sim.pearls], 
+                                                     [g.clone() for g in sim.gates], 
                                                      global_direction=sim.global_direction))
             
             if not sim.pearls: # Immediate Win
@@ -566,17 +586,6 @@ class BoardState:
                 return None
 
         final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, global_direction=sim.global_direction)
-        return final_state, intermediate_states
-
-
-    def _get_dynamic_at(self, loc: Loc, sim: SimState, exclude: Optional[Entity] = None) -> Optional[Entity]:
-        wrapped_loc = self.setup.wrap_loc(loc)
-        for collection in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
-            for item in collection:
-                if item == exclude: continue
-                if item.loc == wrapped_loc: return item
-        return None
-
         return final_state, intermediate_states
 
 
