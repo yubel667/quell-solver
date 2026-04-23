@@ -33,7 +33,7 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
             max_g = g
             sys.stdout.write(f"\rSearching depth: {max_g} | Nodes expanded: {nodes_expanded}   ")
             sys.stdout.flush()
-        elif nodes_expanded % 100 == 0:
+        elif nodes_expanded % 1000 == 0:
             sys.stdout.write(f"\rSearching depth: {max_g} | Nodes expanded: {nodes_expanded}   ")
             sys.stdout.flush()
 
@@ -46,7 +46,7 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
         for droplet_idx in range(len(curr_state.droplets)):
             for direction in Direction:
                 try:
-                    result = curr_state.get_next_state(droplet_idx, direction)
+                    result = curr_state.get_next_state(droplet_idx, direction, include_intermediates=False)
                     if result is None:
                         continue
                     

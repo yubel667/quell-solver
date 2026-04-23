@@ -70,7 +70,7 @@ def main():
                     
                     if direction and current_state.droplets:
                         try:
-                            result = current_state.get_next_state(selected_droplet_idx, direction)
+                            result = current_state.get_next_state(selected_droplet_idx, direction, include_intermediates=True)
                             if result is None:
                                 status_msg = "Droplet Destroyed!"
                                 status_msg_time = now

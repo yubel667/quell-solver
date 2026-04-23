@@ -1,7 +1,6 @@
 import numpy as np
 from typing import List, Tuple, Dict, Optional, Set, Union
 import enum
-import copy
 import math
 import pygame
 
@@ -368,36 +367,48 @@ class BoardState:
     def get_droplet_count(self):
         return len(self.droplets)
 
-    def get_next_state(self, droplet_idx: int, direction: Direction) -> Optional[Tuple['BoardState', List['BoardState']]]:
-        # Assign temporary UUIDs to all pieces to track them through sliding
-        temp_droplets = copy.deepcopy(self.droplets)
-        temp_boxes = copy.deepcopy(self.boxes)
-        temp_pearls = copy.deepcopy(self.pearls)
-        temp_gates = copy.deepcopy(self.gates)
+    def get_next_state(self, droplet_idx: int, direction: Direction, include_intermediates: bool = False) -> Optional[Tuple['BoardState', List['BoardState']]]:
+        # Fast manual cloning instead of copy.deepcopy
+        temp_droplets = [Droplet(d.loc) for d in self.droplets]
+        temp_boxes = [Box(b.loc) for b in self.boxes]
+        temp_pearls = [Pearl(p.loc) for p in self.pearls]
+        temp_gates = [Gate(g.loc, g.is_closed) for g in self.gates]
         
-        for i, d in enumerate(temp_droplets): d._uuid = f"d{i}"
-        for i, b in enumerate(temp_boxes): b._uuid = f"b{i}"
-        for i, p in enumerate(temp_pearls): p._uuid = f"p{i}"
-        for i, g in enumerate(temp_gates): g._uuid = f"g{i}"
+        if include_intermediates:
+            for i, d in enumerate(temp_droplets): d._uuid = f"d{i}"
+            for i, b in enumerate(temp_boxes): b._uuid = f"b{i}"
+            for i, p in enumerate(temp_pearls): p._uuid = f"p{i}"
+            for i, g in enumerate(temp_gates): g._uuid = f"g{i}"
 
         sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates, global_direction=self.global_direction)
         sim.moving_pieces.add(sim.droplets[droplet_idx])
         
-        # history tracks (piece_id, loc, direction) for all moving pieces to detect infinite loops
+        # Build initial dynamic map for faster lookup
+        sim.dynamic_map = {}
+        for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
+            for item in coll:
+                sim.dynamic_map[item.loc.to_tuple()] = item
+
+        # history tracks state signatures to detect infinite loops
         history = set()
-        intermediate_states = [BoardState(self.setup, copy.deepcopy(sim.droplets), copy.deepcopy(sim.boxes), 
-                                         copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates), global_direction=sim.global_direction)]
+        intermediate_states = []
+        if include_intermediates:
+            intermediate_states.append(BoardState(self.setup, [Droplet(d.loc) for d in sim.droplets], 
+                                                 [Box(b.loc) for b in sim.boxes], 
+                                                 [Pearl(p.loc) for p in sim.pearls], 
+                                                 [Gate(g.loc, g.is_closed) for g in sim.gates], 
+                                                 global_direction=sim.global_direction))
 
         while sim.moving_pieces:
             # 1. Detect Infinite Loop
-            # We must include the state of pearls and gates, as collecting a pearl 
-            # or closing a gate changes the state and breaks what would otherwise be a loop.
+            # Only need a signature if we've moved. 
+            # Note: We use a faster signature than full sort keys where possible.
             current_signature = (
-                tuple(sorted(d.get_sort_key() for d in sim.droplets)),
-                tuple(sorted(b.get_sort_key() for b in sim.boxes)),
-                tuple(sorted(p.get_sort_key() for p in sim.pearls)),
-                tuple(sorted(g.get_sort_key() for g in sim.gates)),
-                sim.global_direction.name if sim.global_direction else None
+                tuple(d.loc.to_tuple() for d in sim.droplets),
+                tuple(b.loc.to_tuple() for b in sim.boxes),
+                len(sim.pearls),
+                tuple(g.is_closed for g in sim.gates),
+                sim.global_direction
             )
             if current_signature in history:
                 raise InfiniteLoopError("Infinite loop detected in move simulation")
@@ -409,7 +420,7 @@ class BoardState:
                 changed = False
                 for p in list(sim.moving_pieces):
                     target_loc = self.setup.get_next_loc(p.loc, direction)
-                    target_ent = self._get_dynamic_at(target_loc, sim)
+                    target_ent = sim.dynamic_map.get(target_loc.to_tuple())
                     if isinstance(p, Droplet) and isinstance(target_ent, Box) and target_ent not in sim.moving_pieces:
                         sim.moving_pieces.add(target_ent)
                         changed = True
@@ -434,18 +445,16 @@ class BoardState:
                         continue
 
                 # Dynamic entity blockers (not in moving set)
-                target_ent = self._get_dynamic_at(target_loc, sim)
+                target_ent = sim.dynamic_map.get(target_loc.to_tuple())
                 if target_ent and target_ent not in sim.moving_pieces:
                     if not p.can_move_into(target_ent, direction):
                         to_stop.add(p)
                         continue
                 
-                # Gate blocking rule: Block if gate is closed OR will be closed by someone else leaving it
+                # Gate blocking rule
                 target_gate = None
-                for g in sim.gates:
-                    if g.loc == target_loc:
-                        target_gate = g
-                        break
+                if isinstance(target_ent, Gate):
+                    target_gate = target_ent
                 
                 if target_gate:
                     if target_gate.is_closed:
@@ -465,8 +474,7 @@ class BoardState:
                 for p in list(sim.moving_pieces):
                     if p in to_stop: continue
                     target_loc = self.setup.get_next_loc(p.loc, direction)
-                    target_ent = self._get_dynamic_at(target_loc, sim)
-                    # If target is someone who is stopping, we must also stop
+                    target_ent = sim.dynamic_map.get(target_loc.to_tuple())
                     if target_ent in to_stop:
                         to_stop.add(p)
                         changed = True
@@ -481,18 +489,28 @@ class BoardState:
             gates_to_toggle = []
             moving_list = list(sim.moving_pieces)
             
+            # Remove moving pieces from map before updating their locations
+            for p in moving_list:
+                sim.dynamic_map.pop(p.loc.to_tuple(), None)
+
             for p in moving_list:
                 if p in sim.to_remove: continue
 
-                # Button logic: Triggers upon LEAVING the current cell
+                # Button logic
                 if self.setup.get_stationary_at(p.loc) == StationaryPieceType.BUTTON:
                     sim.global_direction = direction
 
-                # Leaving gate: Find gate at current location before moving
-                for g in sim.gates:
-                    if g.loc == p.loc:
-                        gates_to_toggle.append(g)
-                        break
+                # Leaving gate logic
+                target_ent_at_curr = sim.dynamic_map.get(p.loc.to_tuple())
+                if isinstance(target_ent_at_curr, Gate):
+                    gates_to_toggle.append(target_ent_at_curr)
+                else:
+                    # If it's not in the map (e.g. multiple pieces at same loc), 
+                    # we might need to find it in sim.gates
+                    for g in sim.gates:
+                        if g.loc == p.loc:
+                            gates_to_toggle.append(g)
+                            break
 
                 p.loc = self.setup.get_next_loc(p.loc, direction)
                 
@@ -503,12 +521,17 @@ class BoardState:
                     if other: p.loc = other.loc
                 
                 # Interaction logic
-                target_ent = self._get_dynamic_at(p.loc, sim, exclude=p)
+                target_ent = sim.dynamic_map.get(p.loc.to_tuple())
                 p.handle_collision(target_ent, sim)
+                
+                # Add/Update back to map if not removed
+                if p not in sim.to_remove:
+                    sim.dynamic_map[p.loc.to_tuple()] = p
 
             # Finalize step side effects
             for g in gates_to_toggle: g.is_closed = True
             for e in list(sim.to_remove):
+                sim.dynamic_map.pop(e.loc.to_tuple(), None)
                 if isinstance(e, Droplet):
                     if e in sim.droplets: sim.droplets.remove(e)
                 elif isinstance(e, Box):
@@ -516,15 +539,29 @@ class BoardState:
                 if e in sim.moving_pieces: sim.moving_pieces.remove(e)
             sim.to_remove.clear()
             
-            # Save intermediate state for animation
-            intermediate_states.append(BoardState(self.setup, copy.deepcopy(sim.droplets), copy.deepcopy(sim.boxes), 
-                                                 copy.deepcopy(sim.pearls), copy.deepcopy(sim.gates), global_direction=sim.global_direction))
+            # Pearls removal from map
+            # Note: Pearl removal happens in p.handle_collision(target_ent, sim) 
+            # where target_ent is a Pearl. 
+            # We need to make sure handle_collision or sim removes it from dynamic_map.
+            # Let's adjust Droplet.handle_collision to also update the map or just rebuild map?
+            # Rebuilding map is safer but slightly slower. Let's see.
+            # For now, let's just refresh sim.dynamic_map at end of step for correctness.
+            sim.dynamic_map = {}
+            for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
+                for item in coll:
+                    sim.dynamic_map[item.loc.to_tuple()] = item
+
+            if include_intermediates:
+                intermediate_states.append(BoardState(self.setup, [Droplet(d.loc) for d in sim.droplets], 
+                                                     [Box(b.loc) for b in sim.boxes], 
+                                                     [Pearl(p.loc) for p in sim.pearls], 
+                                                     [Gate(g.loc, g.is_closed) for g in sim.gates], 
+                                                     global_direction=sim.global_direction))
             
             if not sim.pearls: # Immediate Win
                 final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, global_direction=sim.global_direction)
                 return final_state, intermediate_states
             
-            # If all droplets are gone but pearls remain, failure
             if not sim.droplets:
                 return None
 

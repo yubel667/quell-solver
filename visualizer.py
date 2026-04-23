@@ -112,7 +112,7 @@ def run_visualizer(initial_state, solution, autoplay=False, show_controls=True, 
     curr = initial_state
     if solution:
         for move in solution:
-            result = curr.get_next_state(move['droplet_idx'], Direction[move['direction']])
+            result = curr.get_next_state(move['droplet_idx'], Direction[move['direction']], include_intermediates=True)
             if result:
                 final_state, intermediates = result
                 steps_frames.append(intermediates)
