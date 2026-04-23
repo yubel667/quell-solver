@@ -17,12 +17,14 @@ The following entities exist in the grid, or it can be empty.
 12. Golden Wall (stateful)
 13. Golden Pearl (stateful, can disappear)
 14. Hostile Droplet (stateful)
+15. Box with Spike (movable)
 ...
 and new entity may be introduced in later levels.
 
-Spike has two subtypes:
+Spike has three subtypes:
 - direction spike: only 1 side is spike, other 3 sides are wall and behave like wall.
 - omin spike: all 4 sides are spike.
+- Box with Spike: only 1 side is spike, other 3 sides are box and is movable.
 
 Additionally there's a global state button direction if button appears in the level.
 
@@ -45,6 +47,7 @@ The game state changes by moving droplet. a play can make a drople attempt to mo
 - void: void means this space is unoccupied. attempting to move right to void essentially means it would seamless move to the left of the first non-void cell, as if they are connected, and same for each other 4 directions.
 - golden pearl: golden pearl with be collected (it also counted as a normal pearl for ending the game purpose). the droplet will be replaced by a golden droplet maintaining the same direction and movement.
 - hostile droplet: both the moving droplet and the hostile droplet will disappear. (Note that hostile droplet cannot move by itself.)
+- Box with Spike: droplet would treat it as a box, if hitting the non-spike side; treat as spike if hitting the spike side.
 
 The golden droplet moves the same as droplet otherwise, with the only exception being:
 - If it hit a golden wall, it would transform itself back into a normal droplet maintaing the movement, and the golden wall itself will disappear.
@@ -53,6 +56,9 @@ The box is also movable if pushed by a droplet(they move in the same step concur
 - empty, wall, golden wall, portal, gate, button: same as droplet
 - droplet, hostile droplet, spike (include rotatable directional spike), pearl: treat as wall and stop.
 - another box: both box will disappear.
+
+Box with Spike moves the same as the Box otherwise, except when the spike side hits a droplet (including hostile droplet or golden droplet), the droplet would be detroyed and the box continues the movement.
+
 
 An infinite loop (failure) is defined if the exact same state is reached without any state change, the most common form is a droplet moving in one direction non-stop.
 
@@ -73,6 +79,7 @@ The board is rendered as light gray.
 - Golden wall is a Golden Square, otherwise same as the wall that fill the cell.
 - Golden pearl is a small golden circle same size as the pearl.
 - Hostile droplet is a red circle same size as the droplet.
+- Box with Spike is a Brown square similar to Box, but have a small Red Arroaw indicating which side is the spike side.
 
 ## Level editor
 

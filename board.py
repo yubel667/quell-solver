@@ -203,6 +203,7 @@ class Droplet(Movable):
         if target is None: return True
         if isinstance(target, (Pearl, Droplet, HostileDroplet)): return True
         if isinstance(target, Box): return True 
+        if isinstance(target, BoxWithSpike): return True
         if isinstance(target, Gate): return not target.is_closed
         if isinstance(target, Portal): return True
         return False
@@ -255,6 +256,60 @@ class Box(Movable):
             state.to_remove.add(self)
             state.to_remove.add(target)
             return False
+        return False
+
+class BoxWithSpike(Movable):
+    def __init__(self, loc: Loc, spike_dir: Direction):
+        super().__init__(loc)
+        self.spike_dir = spike_dir
+
+    def clone(self):
+        new_e = BoxWithSpike(self.loc, self.spike_dir)
+        new_e._uuid = self._uuid
+        return new_e
+
+    def get_sort_key(self):
+        return ("bs", self.loc.y, self.loc.x, self.spike_dir.name)
+
+    def render(self, screen, px, py, tile_size):
+        # Brown square like box
+        rect = pygame.Rect(px + 5, py + 5, tile_size - 10, tile_size - 10)
+        pygame.draw.rect(screen, (139, 69, 19), rect)
+        pygame.draw.rect(screen, (80, 40, 10), rect, 2)
+        
+        # Small red arrow for spike_dir
+        center = rect.center
+        r = tile_size // 4
+        color = (255, 0, 0)
+        dy, dx = self.spike_dir.value
+        tip = (center[0] + dx * r, center[1] + dy * r)
+        if self.spike_dir == Direction.UP: pts = [tip, (tip[0]-10, tip[1]+15), (tip[0]+10, tip[1]+15)]
+        elif self.spike_dir == Direction.DOWN: pts = [tip, (tip[0]-10, tip[1]-15), (tip[0]+10, tip[1]-15)]
+        elif self.spike_dir == Direction.LEFT: pts = [tip, (tip[0]+15, tip[1]-10), (tip[0]+15, tip[1]+10)]
+        else: pts = [tip, (tip[0]-15, tip[1]-10), (tip[0]-15, tip[1]+10)]
+        pygame.draw.polygon(screen, color, pts)
+
+    def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction, global_direction: Optional[Direction] = None) -> bool:
+        if stat == StationaryPieceType.WALL: return True
+        if stat in {StationaryPieceType.SPIKE_UP, StationaryPieceType.SPIKE_DOWN, 
+                        StationaryPieceType.SPIKE_LEFT, StationaryPieceType.SPIKE_RIGHT, 
+                        StationaryPieceType.SPIKE_OMNI}:
+            return True
+        if stat == StationaryPieceType.ROTATABLE_SPIKE:
+            return True
+        return False
+
+    def can_move_into(self, target: Optional[Entity], direction: Direction) -> bool:
+        if target is None: return True
+        if isinstance(target, Gate): return not target.is_closed
+        if isinstance(target, Portal): return True
+        if isinstance(target, (Droplet, HostileDroplet)):
+            if direction == self.spike_dir:
+                return True
+            return False
+        return False
+
+    def handle_collision(self, target: Optional[Entity], state: 'SimState'):
         return False
 
 class GoldenWall(Entity):
@@ -401,10 +456,11 @@ class BoardSetup:
 
 class SimState:
     """Internal helper to manage the simulation of a single move."""
-    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall], hostile_droplets: List[HostileDroplet], global_direction: Optional[Direction] = None):
+    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], boxes_with_spikes: List[BoxWithSpike], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall], hostile_droplets: List[HostileDroplet], global_direction: Optional[Direction] = None):
         self.setup = setup
         self.droplets = droplets
         self.boxes = boxes
+        self.boxes_with_spikes = boxes_with_spikes
         self.pearls = pearls
         self.gates = gates
         self.golden_walls = golden_walls
@@ -414,10 +470,11 @@ class SimState:
         self.to_remove: Set[Entity] = set()
 
 class BoardState:
-    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall], hostile_droplets: List[HostileDroplet], global_direction: Optional[Direction] = Direction.RIGHT):
+    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], boxes_with_spikes: List[BoxWithSpike], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall], hostile_droplets: List[HostileDroplet], global_direction: Optional[Direction] = Direction.RIGHT):
         self.setup = setup
         self.droplets = sorted(droplets, key=lambda x: x.get_sort_key())
         self.boxes = sorted(boxes, key=lambda x: x.get_sort_key())
+        self.boxes_with_spikes = sorted(boxes_with_spikes, key=lambda x: x.get_sort_key())
         self.pearls = sorted(pearls, key=lambda x: x.get_sort_key())
         self.gates = sorted(gates, key=lambda x: x.get_sort_key())
         self.golden_walls = sorted(golden_walls, key=lambda x: x.get_sort_key())
@@ -428,6 +485,7 @@ class BoardState:
         return (
             tuple(d.get_sort_key() for d in self.droplets),
             tuple(b.get_sort_key() for b in self.boxes),
+            tuple(b.get_sort_key() for b in self.boxes_with_spikes),
             tuple(p.get_sort_key() for p in self.pearls),
             tuple(g.get_sort_key() for g in self.gates),
             tuple(w.get_sort_key() for w in self.golden_walls),
@@ -445,6 +503,7 @@ class BoardState:
         # Fast manual cloning
         temp_droplets = [d.clone() for d in self.droplets]
         temp_boxes = [b.clone() for b in self.boxes]
+        temp_boxes_with_spikes = [b.clone() for b in self.boxes_with_spikes]
         temp_pearls = [p.clone() for p in self.pearls]
         temp_gates = [g.clone() for g in self.gates]
         temp_golden_walls = [w.clone() for w in self.golden_walls]
@@ -456,6 +515,8 @@ class BoardState:
                 if d._uuid is None: d._uuid = f"d{i}"
             for i, b in enumerate(temp_boxes):
                 if b._uuid is None: b._uuid = f"b{i}"
+            for i, b in enumerate(temp_boxes_with_spikes):
+                if b._uuid is None: b._uuid = f"bs{i}"
             for i, p in enumerate(temp_pearls):
                 if p._uuid is None: p._uuid = f"p{i}"
             for i, g in enumerate(temp_gates):
@@ -465,12 +526,12 @@ class BoardState:
             for i, h in enumerate(temp_hostile_droplets):
                 if h._uuid is None: h._uuid = f"h{i}"
 
-        sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates, temp_golden_walls, temp_hostile_droplets, global_direction=self.global_direction)
+        sim = SimState(self.setup, temp_droplets, temp_boxes, temp_boxes_with_spikes, temp_pearls, temp_gates, temp_golden_walls, temp_hostile_droplets, global_direction=self.global_direction)
         sim.moving_pieces.add(sim.droplets[droplet_idx])
         
         # Build initial dynamic map for faster lookup
         sim.dynamic_map = {}
-        for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets]:
+        for coll in [sim.droplets, sim.boxes, sim.boxes_with_spikes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets]:
             for item in coll:
                 sim.dynamic_map[item.loc.to_tuple()] = item
 
@@ -480,6 +541,7 @@ class BoardState:
         if include_intermediates:
             intermediate_states.append(BoardState(self.setup, [d.clone() for d in sim.droplets], 
                                                  [b.clone() for b in sim.boxes], 
+                                                 [b.clone() for b in sim.boxes_with_spikes],
                                                  [p.clone() for p in sim.pearls], 
                                                  [g.clone() for g in sim.gates], 
                                                  [w.clone() for w in sim.golden_walls],
@@ -493,6 +555,7 @@ class BoardState:
             current_signature = (
                 tuple((d.loc.to_tuple(), d.is_golden) for d in sim.droplets),
                 tuple(b.loc.to_tuple() for b in sim.boxes),
+                tuple((b.loc.to_tuple(), b.spike_dir.name) for b in sim.boxes_with_spikes),
                 len(sim.pearls),
                 tuple(g.is_closed for g in sim.gates),
                 len(sim.golden_walls),
@@ -510,9 +573,15 @@ class BoardState:
                 for p in list(sim.moving_pieces):
                     target_loc = self.setup.get_next_loc(p.loc, direction)
                     target_ent = sim.dynamic_map.get(target_loc.to_tuple())
-                    if isinstance(p, Droplet) and isinstance(target_ent, Box) and target_ent not in sim.moving_pieces:
-                        sim.moving_pieces.add(target_ent)
-                        changed = True
+                    if isinstance(p, Droplet) and target_ent not in sim.moving_pieces:
+                        if isinstance(target_ent, Box):
+                            sim.moving_pieces.add(target_ent)
+                            changed = True
+                        elif isinstance(target_ent, BoxWithSpike):
+                            # Push only if hitting non-spike side
+                            if direction.value != (-target_ent.spike_dir.value[0], -target_ent.spike_dir.value[1]):
+                                sim.moving_pieces.add(target_ent)
+                                changed = True
 
             # 3. Identify who must stop
             to_stop = set()
@@ -616,8 +685,13 @@ class BoardState:
                 # Interaction logic
                 target_ent = sim.dynamic_map.get(p.loc.to_tuple())
                 
+                # Box with Spike logic
+                if isinstance(p, Droplet) and isinstance(target_ent, BoxWithSpike):
+                    sim.to_remove.add(p)
+                elif isinstance(p, BoxWithSpike) and isinstance(target_ent, (Droplet, HostileDroplet)):
+                    sim.to_remove.add(target_ent)
                 # Golden logic: Golden Droplet hits Golden Wall
-                if isinstance(p, Droplet) and p.is_golden and isinstance(target_ent, GoldenWall):
+                elif isinstance(p, Droplet) and p.is_golden and isinstance(target_ent, GoldenWall):
                     sim.to_remove.add(target_ent)
                     p.is_golden = False
                 elif isinstance(p, Droplet) and isinstance(target_ent, Pearl) and target_ent.is_golden:
@@ -642,6 +716,8 @@ class BoardState:
                     if e in sim.droplets: sim.droplets.remove(e)
                 elif isinstance(e, Box):
                     if e in sim.boxes: sim.boxes.remove(e)
+                elif isinstance(e, BoxWithSpike):
+                    if e in sim.boxes_with_spikes: sim.boxes_with_spikes.remove(e)
                 elif isinstance(e, GoldenWall):
                     if e in sim.golden_walls: sim.golden_walls.remove(e)
                 elif isinstance(e, HostileDroplet):
@@ -650,13 +726,14 @@ class BoardState:
             sim.to_remove.clear()
             # Re-sync map for safety
             sim.dynamic_map = {}
-            for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets]:
+            for coll in [sim.droplets, sim.boxes, sim.boxes_with_spikes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets]:
                 for item in coll:
                     sim.dynamic_map[item.loc.to_tuple()] = item
 
             if include_intermediates:
                 intermediate_states.append(BoardState(self.setup, [d.clone() for d in sim.droplets], 
                                                      [b.clone() for b in sim.boxes], 
+                                                     [b.clone() for b in sim.boxes_with_spikes],
                                                      [p.clone() for p in sim.pearls], 
                                                      [g.clone() for g in sim.gates], 
                                                      [w.clone() for w in sim.golden_walls],
@@ -664,19 +741,19 @@ class BoardState:
                                                      global_direction=sim.global_direction))
             
             if not sim.pearls: # Immediate Win
-                final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets, global_direction=sim.global_direction)
+                final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.boxes_with_spikes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets, global_direction=sim.global_direction)
                 return final_state, intermediate_states
             
             if not sim.droplets:
                 return None
 
-        final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets, global_direction=sim.global_direction)
+        final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.boxes_with_spikes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets, global_direction=sim.global_direction)
         return final_state, intermediate_states
 
 
     def _get_dynamic_at(self, loc: Loc, sim: SimState, exclude: Optional[Entity] = None) -> Optional[Entity]:
         wrapped_loc = self.setup.wrap_loc(loc)
-        for collection in [sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets]:
+        for collection in [sim.droplets, sim.boxes, sim.boxes_with_spikes, sim.pearls, sim.gates, sim.golden_walls, sim.hostile_droplets]:
             for item in collection:
                 if item == exclude: continue
                 if item.loc == wrapped_loc: return item

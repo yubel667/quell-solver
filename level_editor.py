@@ -27,6 +27,7 @@ class LevelEditor:
         self.gates = []
         self.golden_walls = []
         self.hostile_droplets = []
+        self.boxes_with_spikes = []
         self.global_direction = Direction.RIGHT
 
         # Editor state
@@ -36,7 +37,7 @@ class LevelEditor:
             ["DROPLET", "GOLDEN_DROPLET", "HOSTILE_DROPLET"],
             ["PEARL", "GOLDEN_PEARL"],
             ["WALL", "GOLDEN_WALL"],
-            ["BOX"],
+            ["BOX", "BOX_WITH_SPIKE"],
             ["SPIKE_UP", "SPIKE_OMNI"],
             ["BUTTON", "ROTATABLE_SPIKE"],
             ["PORTAL"],
@@ -62,6 +63,7 @@ class LevelEditor:
                 self.gates = state.gates
                 self.golden_walls = state.golden_walls
                 self.hostile_droplets = state.hostile_droplets
+                self.boxes_with_spikes = state.boxes_with_spikes
                 self.global_direction = state.global_direction
         except Exception as e:
             print(f"Error loading level: {e}")
@@ -69,7 +71,7 @@ class LevelEditor:
     def save(self):
         try:
             setup = BoardSetup(self.grid, self.portals)
-            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls, self.hostile_droplets, global_direction=self.global_direction)
+            state = BoardState(setup, self.droplets, self.boxes, self.boxes_with_spikes, self.pearls, self.gates, self.golden_walls, self.hostile_droplets, global_direction=self.global_direction)
             os.makedirs("questions", exist_ok=True)
             with open(self.file_path, "w") as f:
                 f.write(board_io.serialize_board(state))
@@ -96,6 +98,7 @@ class LevelEditor:
         self.gates = [g for g in self.gates if g.loc.x < new_w and g.loc.y < new_h]
         self.golden_walls = [w for w in self.golden_walls if w.loc.x < new_w and w.loc.y < new_h]
         self.hostile_droplets = [h for h in self.hostile_droplets if h.loc.x < new_w and h.loc.y < new_h]
+        self.boxes_with_spikes = [b for b in self.boxes_with_spikes if b.loc.x < new_w and b.loc.y < new_h]
 
     def handle_click(self, pos, button, is_drag=False, tile_size=None):
         if tile_size is None: tile_size = vis.TILE_SIZE
@@ -137,6 +140,7 @@ class LevelEditor:
             elif self.selected_tool == "GOLDEN_PEARL": self.pearls.append(Pearl(loc, is_golden=True))
             elif self.selected_tool == "GOLDEN_WALL": self.golden_walls.append(GoldenWall(loc))
             elif self.selected_tool == "HOSTILE_DROPLET": self.hostile_droplets.append(HostileDroplet(loc))
+            elif self.selected_tool == "BOX_WITH_SPIKE": self.boxes_with_spikes.append(BoxWithSpike(loc, Direction.UP))
             elif self.selected_tool == "PORTAL": self.portals.append(Portal(loc, self.current_portal_id))
             elif self.selected_tool == "GATE_OPEN": self.gates.append(Gate(loc, is_closed=False))
             elif self.selected_tool == "GATE_CLOSED": self.gates.append(Gate(loc, is_closed=True))
@@ -145,7 +149,7 @@ class LevelEditor:
             self.grid[y, x] = StationaryPieceType.EMPTY.value
 
     def _get_any_entity_at(self, loc):
-        for coll in [self.portals, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls, self.hostile_droplets]:
+        for coll in [self.portals, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls, self.hostile_droplets, self.boxes_with_spikes]:
             if any(e.loc == loc for e in coll): return True
         return False
 
@@ -157,6 +161,7 @@ class LevelEditor:
         self.gates = [g for g in self.gates if not g.loc == loc]
         self.golden_walls = [w for w in self.golden_walls if not w.loc == loc]
         self.hostile_droplets = [h for h in self.hostile_droplets if not h.loc == loc]
+        self.boxes_with_spikes = [b for b in self.boxes_with_spikes if not b.loc == loc]
 
     def rotate_at(self, loc):
         stat = StationaryPieceType(self.grid[loc.y, loc.x])
@@ -172,6 +177,14 @@ class LevelEditor:
             dirs = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT]
             idx = dirs.index(self.global_direction)
             self.global_direction = dirs[(idx + 1) % len(dirs)]
+        
+        # Also check for BoxWithSpike at loc
+        for b in self.boxes_with_spikes:
+            if b.loc == loc:
+                dirs = [Direction.UP, Direction.RIGHT, Direction.DOWN, Direction.LEFT]
+                idx = dirs.index(b.spike_dir)
+                b.spike_dir = dirs[(idx + 1) % len(dirs)]
+
         for g in self.gates:
             if g.loc == loc: g.is_closed = not g.is_closed
 
