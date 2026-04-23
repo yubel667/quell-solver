@@ -16,6 +16,7 @@ The following entities exist in the grid, or it can be empty.
 11. Golden Droplet (movable)
 12. Golden Wall (stateful)
 13. Golden Pearl (stateful, can disappear)
+14. Hostile Droplet (stateful)
 ...
 and new entity may be introduced in later levels.
 
@@ -43,13 +44,14 @@ The game state changes by moving droplet. a play can make a drople attempt to mo
 - Rotatable Directional Spike: treat as Directional spike.
 - void: void means this space is unoccupied. attempting to move right to void essentially means it would seamless move to the left of the first non-void cell, as if they are connected, and same for each other 4 directions.
 - golden pearl: golden pearl with be collected (it also counted as a normal pearl for ending the game purpose). the droplet will be replaced by a golden droplet maintaining the same direction and movement.
+- hostile droplet: both the moving droplet and the hostile droplet will disappear. (Note that hostile droplet cannot move by itself.)
 
 The golden droplet moves the same as droplet otherwise, with the only exception being:
 - If it hit a golden wall, it would transform itself back into a normal droplet maintaing the movement, and the golden wall itself will disappear.
 
 The box is also movable if pushed by a droplet(they move in the same step concurrently), and follow this rule:
 - empty, wall, golden wall, portal, gate, button: same as droplet
-- droplet, spike (include rotatable directional spike), pearl: treat as wall and stop.
+- droplet, hostile droplet, spike (include rotatable directional spike), pearl: treat as wall and stop.
 - another box: both box will disappear.
 
 An infinite loop (failure) is defined if the exact same state is reached without any state change, the most common form is a droplet moving in one direction non-stop.
@@ -70,6 +72,7 @@ The board is rendered as light gray.
 - Golden droplet is a golden circle same size as the droplet.
 - Golden wall is a Golden Square, otherwise same as the wall that fill the cell.
 - Golden pearl is a small golden circle same size as the pearl.
+- Hostile droplet is a red circle same size as the droplet.
 
 ## Level editor
 

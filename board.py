@@ -395,13 +395,13 @@ class SimState:
         self.to_remove: Set[Entity] = set()
 
 class BoardState:
-    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall] = None, global_direction: Optional[Direction] = Direction.RIGHT):
+    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall], global_direction: Optional[Direction] = Direction.RIGHT):
         self.setup = setup
         self.droplets = sorted(droplets, key=lambda x: x.get_sort_key())
         self.boxes = sorted(boxes, key=lambda x: x.get_sort_key())
         self.pearls = sorted(pearls, key=lambda x: x.get_sort_key())
         self.gates = sorted(gates, key=lambda x: x.get_sort_key())
-        self.golden_walls = sorted(golden_walls or [], key=lambda x: x.get_sort_key())
+        self.golden_walls = sorted(golden_walls, key=lambda x: x.get_sort_key())
         self.global_direction = global_direction
 
     def get_id(self):
