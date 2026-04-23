@@ -64,7 +64,7 @@ def run_regression(full=False, max_visited=500):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Solver Regression Test")
     parser.add_argument("--full", action="store_true", help="Run all tests including slow ones")
-    parser.add_argument("--max-visited", type=int, default=1000, help="Max visited states for non-full run")
+    parser.add_argument("--max-visited", type=int, default=5000, help="Max visited states for non-full run")
     args = parser.parse_args()
 
     run_regression(full=args.full, max_visited=args.max_visited)
