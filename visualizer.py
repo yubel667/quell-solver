@@ -49,6 +49,9 @@ def draw_board(screen, state):
     for w in state.golden_walls:
         px, py = get_pixel_pos(w.loc)
         w.render(screen, px, py, TILE_SIZE)
+    for h in state.hostile_droplets:
+        px, py = get_pixel_pos(h.loc)
+        h.render(screen, px, py, TILE_SIZE)
     for b in state.boxes:
         px, py = get_pixel_pos(b.loc)
         b.render(screen, px, py, TILE_SIZE)
@@ -72,8 +75,8 @@ def draw_board_interpolated(screen, state1, state2, alpha):
     
     # Dynamic entities: Match by UUID
     # We prioritize state2 for existing entities, and state1 for disappearing ones
-    s1_entities = {e._uuid: e for e in state1.pearls + state1.gates + state1.boxes + state1.droplets + state1.golden_walls if e._uuid}
-    s2_entities = {e._uuid: e for e in state2.pearls + state2.gates + state2.boxes + state2.droplets + state2.golden_walls if e._uuid}
+    s1_entities = {e._uuid: e for e in state1.pearls + state1.gates + state1.boxes + state1.droplets + state1.golden_walls + state1.hostile_droplets if e._uuid}
+    s2_entities = {e._uuid: e for e in state2.pearls + state2.gates + state2.boxes + state2.droplets + state2.golden_walls + state2.hostile_droplets if e._uuid}
     
     all_uuids = set(s1_entities.keys()) | set(s2_entities.keys())
     

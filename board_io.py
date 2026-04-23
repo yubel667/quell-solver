@@ -27,6 +27,7 @@ def serialize_board(state: BoardState) -> str:
         "pearls": [{"y": p.loc.y, "x": p.loc.x, "golden": p.is_golden} for p in state.pearls],
         "gates": [{"y": g.loc.y, "x": g.loc.x, "closed": g.is_closed} for g in state.gates],
         "golden_walls": [{"y": w.loc.y, "x": w.loc.x} for w in state.golden_walls],
+        "hostile_droplets": [{"y": h.loc.y, "x": h.loc.x} for h in state.hostile_droplets],
         "global_direction": state.global_direction.name if state.global_direction else "RIGHT"
     }
     output.write(json.dumps(dynamic_data, indent=2) + "\n")
@@ -54,15 +55,16 @@ def parse_board(content: str) -> BoardState:
 
     setup = BoardSetup(grid, portals)
     
-    from board import Droplet, Box, Pearl, Gate, GoldenWall
+    from board import Droplet, Box, Pearl, Gate, GoldenWall, HostileDroplet
     droplets = [Droplet(Loc(d["y"], d["x"]), d.get("golden", False)) for d in dynamic.get("droplets", [])]
     boxes = [Box(Loc(b["y"], b["x"])) for b in dynamic.get("boxes", [])]
     pearls = [Pearl(Loc(p["y"], p["x"]), p.get("golden", False)) for p in dynamic.get("pearls", [])]
     gates = [Gate(Loc(g["y"], g["x"]), g["closed"]) for g in dynamic.get("gates", [])]
     golden_walls = [GoldenWall(Loc(w["y"], w["x"])) for w in dynamic.get("golden_walls", [])]
+    hostile_droplets = [HostileDroplet(Loc(h["y"], h["x"])) for h in dynamic.get("hostile_droplets", [])]
     
     from board import Direction
     g_dir_name = dynamic.get("global_direction", "RIGHT")
     global_direction = Direction[g_dir_name] if g_dir_name else Direction.RIGHT
     
-    return BoardState(setup, droplets, boxes, pearls, gates, golden_walls, global_direction=global_direction)
+    return BoardState(setup, droplets, boxes, pearls, gates, golden_walls, hostile_droplets, global_direction=global_direction)
