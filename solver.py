@@ -12,28 +12,37 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
     if initial_state.is_solved():
         return [], 0, time.time() - start_time
 
-    # Priority queue stores (g_score, -droplet_count, counter, state, path)
-    # g_score = distance from start (ensures shortest path)
-    # -droplet_count = heuristic to prefer keeping droplets
-    
     counter = 0
-    # (g, h, count, state, path)
-    pq = [(0, -initial_state.get_droplet_count(), counter, initial_state, [])]
+    # (g, h, counter, state)
+    pq = [(0, -initial_state.get_droplet_count(), counter, initial_state)]
     
-    visited = {initial_state.get_id()}
+    initial_id = initial_state.get_id()
+    # came_from[state_id] = (parent_id, move)
+    came_from = {initial_id: None}
     
     nodes_expanded = 0
+    final_state = None
+    max_g = 0
 
     while pq:
-        g, h, _, curr_state, path = heapq.heappop(pq)
+        g, h, _, curr_state = heapq.heappop(pq)
         nodes_expanded += 1
+        curr_id = curr_state.get_id()
+
+        if g > max_g:
+            max_g = g
+            sys.stdout.write(f"\rSearching depth: {max_g} | Nodes expanded: {nodes_expanded}   ")
+            sys.stdout.flush()
+        elif nodes_expanded % 100 == 0:
+            sys.stdout.write(f"\rSearching depth: {max_g} | Nodes expanded: {nodes_expanded}   ")
+            sys.stdout.flush()
 
         if curr_state.is_solved():
-            end_time = time.time()
-            return path, len(visited), end_time - start_time
+            final_state = curr_state
+            sys.stdout.write("\n")
+            break
 
         # Try all possible moves
-        # Each move is (droplet_index, direction)
         for droplet_idx in range(len(curr_state.droplets)):
             for direction in Direction:
                 try:
@@ -43,25 +52,35 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
                     
                     next_state, _ = result
                     state_id = next_state.get_id()
-                    if state_id not in visited:
-                        visited.add(state_id)
-                        new_g = g + 1
-                        new_h = -next_state.get_droplet_count()
-                        
+                    if state_id not in came_from:
                         move = {
                             "droplet_idx": droplet_idx,
                             "direction": direction.name,
                             "from": curr_state.droplets[droplet_idx].loc.to_tuple()
                         }
-                        new_path = path + [move]
+                        came_from[state_id] = (curr_id, move)
                         
+                        new_g = g + 1
+                        new_h = -next_state.get_droplet_count()
                         counter += 1
-                        heapq.heappush(pq, (new_g, new_h, counter, next_state, new_path))
+                        heapq.heappush(pq, (new_g, new_h, counter, next_state))
                 except InfiniteLoopError:
                     continue
     
+    if final_state:
+        # Reconstruct path
+        path = []
+        temp_id = final_state.get_id()
+        while temp_id != initial_id:
+            parent_id, move = came_from[temp_id]
+            path.append(move)
+            temp_id = parent_id
+        path.reverse()
+        end_time = time.time()
+        return path, len(came_from), end_time - start_time
+
     end_time = time.time()
-    return None, len(visited), end_time - start_time
+    return None, len(came_from), end_time - start_time
 
 def main():
     if len(sys.argv) < 2:
