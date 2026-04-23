@@ -4,7 +4,7 @@ import os
 import numpy as np
 import json
 from board import (
-    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType, Direction, GoldenWall
+    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType, Direction, GoldenWall, HostileDroplet
 )
 import board_io
 import visualizer as vis
