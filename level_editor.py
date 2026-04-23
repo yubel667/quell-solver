@@ -4,7 +4,7 @@ import os
 import numpy as np
 import json
 from board import (
-    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType, Direction, GoldenWall, HostileDroplet
+    BoardState, BoardSetup, Loc, Droplet, Box, Pearl, Portal, Gate, StationaryPieceType, Direction, GoldenWall, HostileDroplet, BoxWithSpike
 )
 import board_io
 import visualizer as vis
@@ -218,7 +218,7 @@ class LevelEditor:
             vis.TILE_SIZE = tile_size
             
             setup = BoardSetup(self.grid, self.portals)
-            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls, self.hostile_droplets, global_direction=self.global_direction)
+            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls, self.hostile_droplets, self.boxes_with_spikes, global_direction=self.global_direction)
             vis.draw_board(screen, state)
             
             vis.TILE_SIZE = old_tile_size # Restore
