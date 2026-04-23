@@ -37,5 +37,6 @@
       "x": 3
     }
   ],
-  "gates": []
+  "gates": [],
+  "global_direction": "RIGHT"
 }
