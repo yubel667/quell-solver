@@ -21,6 +21,7 @@ class StationaryPieceType(enum.Enum):
     SPIKE_OMNI = 6
     BUTTON = 7
     ROTATABLE_SPIKE = 8
+    VOID = 9
 
 class Loc:
     def __init__(self, y: int, x: int):
@@ -221,7 +222,9 @@ class StationaryPiece:
     @staticmethod
     def render(screen, stat: StationaryPieceType, px, py, tile_size, global_direction: Optional[Direction] = Direction.RIGHT):
         rect = pygame.Rect(px, py, tile_size, tile_size)
-        if stat == StationaryPieceType.WALL:
+        if stat == StationaryPieceType.VOID:
+            pygame.draw.rect(screen, (0, 0, 0), rect)
+        elif stat == StationaryPieceType.WALL:
             pygame.draw.rect(screen, (60, 60, 60), rect)
             pygame.draw.rect(screen, (40, 40, 40), rect, 2)
         elif stat == StationaryPieceType.BUTTON:
@@ -293,6 +296,17 @@ class BoardSetup:
 
     def wrap_loc(self, loc: Loc) -> Loc:
         return Loc(loc.y % self.height, loc.x % self.width)
+
+    def get_next_loc(self, loc: Loc, direction: Direction) -> Loc:
+        """Finds the next non-VOID location in the given direction, wrapping as needed."""
+        curr = loc
+        while True:
+            curr = self.wrap_loc(curr + direction)
+            if self.grid[curr.y, curr.x] != StationaryPieceType.VOID.value:
+                return curr
+            # Safety break for all-VOID board
+            if curr == loc:
+                return loc
 
     def get_stationary_at(self, loc: Loc) -> StationaryPieceType:
         wrapped = self.wrap_loc(loc)
@@ -383,7 +397,7 @@ class BoardState:
             while changed:
                 changed = False
                 for p in list(sim.moving_pieces):
-                    target_loc = p.loc + direction
+                    target_loc = self.setup.get_next_loc(p.loc, direction)
                     target_ent = self._get_dynamic_at(target_loc, sim)
                     if isinstance(p, Droplet) and isinstance(target_ent, Box) and target_ent not in sim.moving_pieces:
                         sim.moving_pieces.add(target_ent)
@@ -392,7 +406,7 @@ class BoardState:
             # 3. Identify who must stop
             to_stop = set()
             for p in list(sim.moving_pieces):
-                target_loc = p.loc + direction
+                target_loc = self.setup.get_next_loc(p.loc, direction)
                 stat = self.setup.get_stationary_at(target_loc)
                 
                 # Stationary piece blockers
@@ -417,9 +431,8 @@ class BoardState:
                 
                 # Gate blocking rule: Block if gate is closed OR will be closed by someone else leaving it
                 target_gate = None
-                wrapped_target = self.setup.wrap_loc(target_loc)
                 for g in sim.gates:
-                    if g.loc == wrapped_target:
+                    if g.loc == target_loc:
                         target_gate = g
                         break
                 
@@ -440,7 +453,7 @@ class BoardState:
                 changed = False
                 for p in list(sim.moving_pieces):
                     if p in to_stop: continue
-                    target_loc = p.loc + direction
+                    target_loc = self.setup.get_next_loc(p.loc, direction)
                     target_ent = self._get_dynamic_at(target_loc, sim)
                     # If target is someone who is stopping, we must also stop
                     if target_ent in to_stop:
@@ -470,15 +483,13 @@ class BoardState:
                         gates_to_toggle.append(g)
                         break
 
-                p.loc = p.loc + direction
+                p.loc = self.setup.get_next_loc(p.loc, direction)
                 
                 # Portal logic
                 portal = self.setup.get_portal_at(p.loc)
                 if portal:
                     other = self.setup.get_other_portal(portal)
                     if other: p.loc = other.loc
-
-                p.loc = self.setup.wrap_loc(p.loc)
                 
                 # Interaction logic
                 target_ent = self._get_dynamic_at(p.loc, sim, exclude=p)
@@ -507,6 +518,17 @@ class BoardState:
                 return None
 
         final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, global_direction=sim.global_direction)
+        return final_state, intermediate_states
+
+
+    def _get_dynamic_at(self, loc: Loc, sim: SimState, exclude: Optional[Entity] = None) -> Optional[Entity]:
+        wrapped_loc = self.setup.wrap_loc(loc)
+        for collection in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
+            for item in collection:
+                if item == exclude: continue
+                if item.loc == wrapped_loc: return item
+        return None
+
         return final_state, intermediate_states
 
 

@@ -30,7 +30,7 @@ class LevelEditor:
         self.current_portal_id = "1"
         self.tools = [
             "WALL", "SPIKE_UP", "SPIKE_OMNI", "BUTTON", "ROTATABLE_SPIKE",
-            "DROPLET", "BOX", "PEARL", "PORTAL", "GATE_OPEN", "GATE_CLOSED", "EMPTY"
+            "DROPLET", "BOX", "PEARL", "PORTAL", "GATE_OPEN", "GATE_CLOSED", "EMPTY", "VOID"
         ]
         
         if os.path.exists(self.file_path):
@@ -110,6 +110,7 @@ class LevelEditor:
             elif self.selected_tool == "ROTATABLE_SPIKE": self.grid[y, x] = StationaryPieceType.ROTATABLE_SPIKE.value
             elif self.selected_tool.startswith("SPIKE"): self.grid[y, x] = getattr(StationaryPieceType, self.selected_tool).value
             elif self.selected_tool == "EMPTY": self.grid[y, x] = StationaryPieceType.EMPTY.value
+            elif self.selected_tool == "VOID": self.grid[y, x] = StationaryPieceType.VOID.value
             elif self.selected_tool == "DROPLET": self.droplets.append(Droplet(loc))
             elif self.selected_tool == "BOX": self.boxes.append(Box(loc))
             elif self.selected_tool == "PEARL": self.pearls.append(Pearl(loc))
