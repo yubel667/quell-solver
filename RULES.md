@@ -12,6 +12,7 @@ The following entities exist in the grid, or it can be empty.
 7. Gate (stateful, can be open or close)
 8. Button (stationary)
 9. Rotatable Directional Spike (stationary)
+10. void (nothing)
 ...
 and new entity may be introduced in later levels.
 
@@ -37,6 +38,7 @@ The game state changes by moving droplet. a play can make a drople attempt to mo
 - Gate (close): Treat as wall.
 - Button: treat as empty. however, upon entering this cell, a global state recording the direction will trigger. all Rotatable Directional Spike will point to the same direction (for example, if move from left to right, all directional spike will point to the right.)
 - Rotatable Directional Spike: treat as Directional spike.
+- void: void means this space is unoccupied. attempting to move right to void essentially means it would seamless move to the left of the first non-void cell, as if they are connected, and same for each other 4 directions.
 
 The box is also movable if pushed by a droplet(they move in the same step concurrently), and follow this rule:
 - empty, wall, portal, gate, button: same as droplet
@@ -57,6 +59,7 @@ The board is rendered as light gray.
 - Gate if open is a tiny green circle. If closed, it is 9 tiny green circle evenly distributed on a square.
 - Button is a small red arrow, all showing the global direction.
 - Rotatable Direction Spike is the same as direction spike except using orange color for the square.
+- void is rendered as black filling the cell.
 
 ## Level editor
 
