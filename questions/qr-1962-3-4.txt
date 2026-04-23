@@ -15,7 +15,7 @@
 {
   "droplets": [
     {
-      "y": 2,
+      "y": 3,
       "x": 3,
       "golden": false
     },
