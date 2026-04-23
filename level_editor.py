@@ -23,6 +23,7 @@ class LevelEditor:
         self.boxes = []
         self.pearls = []
         self.gates = []
+        self.golden_walls = []
         self.global_direction = Direction.RIGHT
         
         # Editor state
@@ -30,7 +31,8 @@ class LevelEditor:
         self.current_portal_id = "1"
         self.tools = [
             "WALL", "SPIKE_UP", "SPIKE_OMNI", "BUTTON", "ROTATABLE_SPIKE",
-            "DROPLET", "BOX", "PEARL", "PORTAL", "GATE_OPEN", "GATE_CLOSED", "EMPTY", "VOID"
+            "DROPLET", "GOLDEN_DROPLET", "BOX", "PEARL", "GOLDEN_PEARL", 
+            "GOLDEN_WALL", "PORTAL", "GATE_OPEN", "GATE_CLOSED", "EMPTY", "VOID"
         ]
         
         if os.path.exists(self.file_path):
@@ -47,6 +49,7 @@ class LevelEditor:
                 self.boxes = state.boxes
                 self.pearls = state.pearls
                 self.gates = state.gates
+                self.golden_walls = state.golden_walls
                 self.global_direction = state.global_direction
         except Exception as e:
             print(f"Error loading level: {e}")
@@ -54,7 +57,7 @@ class LevelEditor:
     def save(self):
         try:
             setup = BoardSetup(self.grid, self.portals)
-            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, global_direction=self.global_direction)
+            state = BoardState(setup, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls, global_direction=self.global_direction)
             os.makedirs("questions", exist_ok=True)
             with open(self.file_path, "w") as f:
                 f.write(board_io.serialize_board(state))
@@ -79,6 +82,7 @@ class LevelEditor:
         self.boxes = [b for b in self.boxes if b.loc.x < new_w and b.loc.y < new_h]
         self.pearls = [p for p in self.pearls if p.loc.x < new_w and p.loc.y < new_h]
         self.gates = [g for g in self.gates if g.loc.x < new_w and g.loc.y < new_h]
+        self.golden_walls = [w for w in self.golden_walls if w.loc.x < new_w and w.loc.y < new_h]
 
     def handle_click(self, pos, button, is_drag=False, tile_size=None):
         if tile_size is None: tile_size = vis.TILE_SIZE
@@ -112,8 +116,11 @@ class LevelEditor:
             elif self.selected_tool == "EMPTY": self.grid[y, x] = StationaryPieceType.EMPTY.value
             elif self.selected_tool == "VOID": self.grid[y, x] = StationaryPieceType.VOID.value
             elif self.selected_tool == "DROPLET": self.droplets.append(Droplet(loc))
+            elif self.selected_tool == "GOLDEN_DROPLET": self.droplets.append(Droplet(loc, is_golden=True))
             elif self.selected_tool == "BOX": self.boxes.append(Box(loc))
             elif self.selected_tool == "PEARL": self.pearls.append(Pearl(loc))
+            elif self.selected_tool == "GOLDEN_PEARL": self.pearls.append(Pearl(loc, is_golden=True))
+            elif self.selected_tool == "GOLDEN_WALL": self.golden_walls.append(GoldenWall(loc))
             elif self.selected_tool == "PORTAL": self.portals.append(Portal(loc, self.current_portal_id))
             elif self.selected_tool == "GATE_OPEN": self.gates.append(Gate(loc, is_closed=False))
             elif self.selected_tool == "GATE_CLOSED": self.gates.append(Gate(loc, is_closed=True))
@@ -122,7 +129,7 @@ class LevelEditor:
             self.grid[y, x] = StationaryPieceType.EMPTY.value
 
     def _get_any_entity_at(self, loc):
-        for coll in [self.portals, self.droplets, self.boxes, self.pearls, self.gates]:
+        for coll in [self.portals, self.droplets, self.boxes, self.pearls, self.gates, self.golden_walls]:
             if any(e.loc == loc for e in coll): return True
         return False
 
@@ -132,6 +139,7 @@ class LevelEditor:
         self.boxes = [b for b in self.boxes if not b.loc == loc]
         self.pearls = [p for p in self.pearls if not p.loc == loc]
         self.gates = [g for g in self.gates if not g.loc == loc]
+        self.golden_walls = [w for w in self.golden_walls if not w.loc == loc]
 
     def rotate_at(self, loc):
         stat = StationaryPieceType(self.grid[loc.y, loc.x])

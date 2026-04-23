@@ -13,6 +13,9 @@ The following entities exist in the grid, or it can be empty.
 8. Button (stationary)
 9. Rotatable Directional Spike (stationary)
 10. void (nothing)
+11. Golden Droplet (movable)
+12. Golden Wall (stateful)
+13. Golden Pearl (stateful, can disappear)
 ...
 and new entity may be introduced in later levels.
 
@@ -28,8 +31,8 @@ Most entities occupy a space and are mutually exclusive, can only occupy 1 cell 
 
 The game state changes by moving droplet. a play can make a drople attempt to move on 1 of the 4 direction. a then it follow this rule when encountering other entities, until infinite loop (failure), all pearls collected (success) or all movable object stops or destroys.:
 - empty: droplet will keep moving in the same direction. note that if out of boundary, it would check the other side of the board (so up is connected to bottom and left is connected to right.)
-- another droplet: the stationary droplet will disappear (because it merges with the other droplet), moving droplet keep moving in the same direction.
-- wall: droplet would stop.
+- another droplet: the stationary droplet will disappear (because it merges with the other droplet), moving droplet keep moving in the same direction. if one of them is golden, the merged droplet is golden.
+- wall or golden wall: droplet would stop.
 - Spike: droplet will be destroyed.
 - Pearl: pearl will be collected and destroy, droplet keep moving. The game ends as successful the moment the last pearl is collected.
 - Box: the box will attempt to move on the same direction along with the droplet. if the box cannot move, the droplet will also stop.
@@ -39,9 +42,13 @@ The game state changes by moving droplet. a play can make a drople attempt to mo
 - Button: treat as empty. however, upon entering this cell, a global state recording the direction will trigger. all Rotatable Directional Spike will point to the same direction (for example, if move from left to right, all directional spike will point to the right.)
 - Rotatable Directional Spike: treat as Directional spike.
 - void: void means this space is unoccupied. attempting to move right to void essentially means it would seamless move to the left of the first non-void cell, as if they are connected, and same for each other 4 directions.
+- golden pearl: golden pearl with be collected (it also counted as a normal pearl for ending the game purpose). the droplet will be replaced by a golden droplet maintaining the same direction and movement.
+
+The golden droplet moves the same as droplet otherwise, with the only exception being:
+- If it hit a golden wall, it would transform itself back into a normal droplet maintaing the movement, and the golden wall itself will disappear.
 
 The box is also movable if pushed by a droplet(they move in the same step concurrently), and follow this rule:
-- empty, wall, portal, gate, button: same as droplet
+- empty, wall, golden wall, portal, gate, button: same as droplet
 - droplet, spike (include rotatable directional spike), pearl: treat as wall and stop.
 - another box: both box will disappear.
 
@@ -60,6 +67,9 @@ The board is rendered as light gray.
 - Button is a small red arrow, all showing the global direction.
 - Rotatable Direction Spike is the same as direction spike except using orange color for the square.
 - void is rendered as black filling the cell.
+- Golden droplet is a golden circle same size as the droplet.
+- Golden wall is a Golden Square, otherwise same as the wall that fill the cell.
+- Golden pearl is a small golden circle same size as the pearl.
 
 ## Level editor
 

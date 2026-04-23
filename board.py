@@ -59,12 +59,22 @@ class Entity:
         pass
 
 class Pearl(Entity):
+    def __init__(self, loc: Loc, is_golden: bool = False):
+        super().__init__(loc)
+        self.is_golden = is_golden
+
+    def clone(self):
+        new_e = Pearl(self.loc, self.is_golden)
+        new_e._uuid = self._uuid
+        return new_e
+
     def get_sort_key(self):
-        return ("p", self.loc.y, self.loc.x)
+        return ("p", self.loc.y, self.loc.x, self.is_golden)
 
     def render(self, screen, px, py, tile_size):
         center = (px + tile_size // 2, py + tile_size // 2)
-        pygame.draw.circle(screen, (255, 255, 255), center, tile_size // 4)
+        color = (255, 215, 0) if self.is_golden else (255, 255, 255)
+        pygame.draw.circle(screen, color, center, tile_size // 4)
         pygame.draw.circle(screen, (200, 200, 200), center, tile_size // 4, 1)
 
 class Gate(Entity):
@@ -128,13 +138,24 @@ class Movable(Entity):
         raise NotImplementedError()
 
 class Droplet(Movable):
+    def __init__(self, loc: Loc, is_golden: bool = False):
+        super().__init__(loc)
+        self.is_golden = is_golden
+
+    def clone(self):
+        new_e = Droplet(self.loc, self.is_golden)
+        new_e._uuid = self._uuid
+        return new_e
+
     def get_sort_key(self):
-        return ("d", self.loc.y, self.loc.x)
+        return ("d", self.loc.y, self.loc.x, self.is_golden)
 
     def render(self, screen, px, py, tile_size):
         center = (px + tile_size // 2, py + tile_size // 2)
-        pygame.draw.circle(screen, (0, 255, 255), center, tile_size // 2 - 5)
-        pygame.draw.circle(screen, (0, 200, 200), center, tile_size // 2 - 5, 2)
+        fill_color = (255, 215, 0) if self.is_golden else (0, 255, 255)
+        border_color = (184, 134, 11) if self.is_golden else (0, 200, 200)
+        pygame.draw.circle(screen, fill_color, center, tile_size // 2 - 5)
+        pygame.draw.circle(screen, border_color, center, tile_size // 2 - 5, 2)
 
     def is_blocked_by_stationary(self, stat: StationaryPieceType, direction: Direction, global_direction: Optional[Direction] = None) -> bool:
         if stat == StationaryPieceType.WALL:
@@ -231,6 +252,20 @@ class Box(Movable):
             state.to_remove.add(target)
             return False
         return False
+
+class GoldenWall(Entity):
+    def clone(self):
+        new_e = GoldenWall(self.loc)
+        new_e._uuid = self._uuid
+        return new_e
+
+    def get_sort_key(self):
+        return ("w", self.loc.y, self.loc.x)
+
+    def render(self, screen, px, py, tile_size):
+        rect = pygame.Rect(px, py, tile_size, tile_size)
+        pygame.draw.rect(screen, (218, 165, 32), rect)
+        pygame.draw.rect(screen, (184, 134, 11), rect, 2)
 
 class StationaryPiece:
     @staticmethod
@@ -348,23 +383,25 @@ class BoardSetup:
 
 class SimState:
     """Internal helper to manage the simulation of a single move."""
-    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], global_direction: Optional[Direction] = None):
+    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall], global_direction: Optional[Direction] = None):
         self.setup = setup
         self.droplets = droplets
         self.boxes = boxes
         self.pearls = pearls
         self.gates = gates
+        self.golden_walls = golden_walls
         self.global_direction = global_direction
         self.moving_pieces: Set[Movable] = set()
         self.to_remove: Set[Entity] = set()
 
 class BoardState:
-    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], global_direction: Optional[Direction] = Direction.RIGHT):
+    def __init__(self, setup: BoardSetup, droplets: List[Droplet], boxes: List[Box], pearls: List[Pearl], gates: List[Gate], golden_walls: List[GoldenWall] = None, global_direction: Optional[Direction] = Direction.RIGHT):
         self.setup = setup
         self.droplets = sorted(droplets, key=lambda x: x.get_sort_key())
         self.boxes = sorted(boxes, key=lambda x: x.get_sort_key())
         self.pearls = sorted(pearls, key=lambda x: x.get_sort_key())
         self.gates = sorted(gates, key=lambda x: x.get_sort_key())
+        self.golden_walls = sorted(golden_walls or [], key=lambda x: x.get_sort_key())
         self.global_direction = global_direction
 
     def get_id(self):
@@ -373,6 +410,7 @@ class BoardState:
             tuple(b.get_sort_key() for b in self.boxes),
             tuple(p.get_sort_key() for p in self.pearls),
             tuple(g.get_sort_key() for g in self.gates),
+            tuple(w.get_sort_key() for w in self.golden_walls),
             self.global_direction.name if self.global_direction else None
         )
 
@@ -388,6 +426,7 @@ class BoardState:
         temp_boxes = [b.clone() for b in self.boxes]
         temp_pearls = [p.clone() for p in self.pearls]
         temp_gates = [g.clone() for g in self.gates]
+        temp_golden_walls = [w.clone() for w in self.golden_walls]
         
         if include_intermediates:
             # Only assign UUIDs if they don't exist yet (for visualizer interpolation)
@@ -399,13 +438,15 @@ class BoardState:
                 if p._uuid is None: p._uuid = f"p{i}"
             for i, g in enumerate(temp_gates):
                 if g._uuid is None: g._uuid = f"g{i}"
+            for i, w in enumerate(temp_golden_walls):
+                if w._uuid is None: w._uuid = f"w{i}"
 
-        sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates, global_direction=self.global_direction)
+        sim = SimState(self.setup, temp_droplets, temp_boxes, temp_pearls, temp_gates, temp_golden_walls, global_direction=self.global_direction)
         sim.moving_pieces.add(sim.droplets[droplet_idx])
         
         # Build initial dynamic map for faster lookup
         sim.dynamic_map = {}
-        for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
+        for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls]:
             for item in coll:
                 sim.dynamic_map[item.loc.to_tuple()] = item
 
@@ -417,6 +458,7 @@ class BoardState:
                                                  [b.clone() for b in sim.boxes], 
                                                  [p.clone() for p in sim.pearls], 
                                                  [g.clone() for g in sim.gates], 
+                                                 [w.clone() for w in sim.golden_walls],
                                                  global_direction=sim.global_direction))
 
         while sim.moving_pieces:
@@ -424,10 +466,11 @@ class BoardState:
             # Only need a signature if we've moved. 
             # Note: We use a faster signature than full sort keys where possible.
             current_signature = (
-                tuple(d.loc.to_tuple() for d in sim.droplets),
+                tuple((d.loc.to_tuple(), d.is_golden) for d in sim.droplets),
                 tuple(b.loc.to_tuple() for b in sim.boxes),
                 len(sim.pearls),
                 tuple(g.is_closed for g in sim.gates),
+                len(sim.golden_walls),
                 sim.global_direction
             )
             if current_signature in history:
@@ -467,7 +510,11 @@ class BoardState:
                 # Dynamic entity blockers (not in moving set)
                 target_ent = sim.dynamic_map.get(target_loc.to_tuple())
                 if target_ent and target_ent not in sim.moving_pieces:
-                    if not p.can_move_into(target_ent, direction):
+                    # Special case: Golden Droplet hits Golden Wall
+                    if isinstance(p, Droplet) and p.is_golden and isinstance(target_ent, GoldenWall):
+                        # It can move into it (it will destroy it in execute step)
+                        pass
+                    elif not p.can_move_into(target_ent, direction):
                         to_stop.add(p)
                         continue
                 
@@ -542,7 +589,20 @@ class BoardState:
                 
                 # Interaction logic
                 target_ent = sim.dynamic_map.get(p.loc.to_tuple())
-                p.handle_collision(target_ent, sim)
+                
+                # Golden logic: Golden Droplet hits Golden Wall
+                if isinstance(p, Droplet) and p.is_golden and isinstance(target_ent, GoldenWall):
+                    sim.to_remove.add(target_ent)
+                    p.is_golden = False
+                elif isinstance(p, Droplet) and isinstance(target_ent, Pearl) and target_ent.is_golden:
+                    p.is_golden = True
+                    p.handle_collision(target_ent, sim)
+                elif isinstance(p, Droplet) and isinstance(target_ent, Droplet):
+                    # Merge logic: if one of them is golden, the merged droplet is golden.
+                    p.is_golden = p.is_golden or target_ent.is_golden
+                    p.handle_collision(target_ent, sim)
+                else:
+                    p.handle_collision(target_ent, sim)
                 
                 # Add/Update back to map if not removed
                 if p not in sim.to_remove:
@@ -556,18 +616,14 @@ class BoardState:
                     if e in sim.droplets: sim.droplets.remove(e)
                 elif isinstance(e, Box):
                     if e in sim.boxes: sim.boxes.remove(e)
+                elif isinstance(e, GoldenWall):
+                    if e in sim.golden_walls: sim.golden_walls.remove(e)
                 if e in sim.moving_pieces: sim.moving_pieces.remove(e)
             sim.to_remove.clear()
             
-            # Pearls removal from map
-            # Note: Pearl removal happens in p.handle_collision(target_ent, sim) 
-            # where target_ent is a Pearl. 
-            # We need to make sure handle_collision or sim removes it from dynamic_map.
-            # Let's adjust Droplet.handle_collision to also update the map or just rebuild map?
-            # Rebuilding map is safer but slightly slower. Let's see.
-            # For now, let's just refresh sim.dynamic_map at end of step for correctness.
+            # Re-sync map for safety
             sim.dynamic_map = {}
-            for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates]:
+            for coll in [sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls]:
                 for item in coll:
                     sim.dynamic_map[item.loc.to_tuple()] = item
 
@@ -576,16 +632,17 @@ class BoardState:
                                                      [b.clone() for b in sim.boxes], 
                                                      [p.clone() for p in sim.pearls], 
                                                      [g.clone() for g in sim.gates], 
+                                                     [w.clone() for w in sim.golden_walls],
                                                      global_direction=sim.global_direction))
             
             if not sim.pearls: # Immediate Win
-                final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, global_direction=sim.global_direction)
+                final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls, global_direction=sim.global_direction)
                 return final_state, intermediate_states
             
             if not sim.droplets:
                 return None
 
-        final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, global_direction=sim.global_direction)
+        final_state = BoardState(self.setup, sim.droplets, sim.boxes, sim.pearls, sim.gates, sim.golden_walls, global_direction=sim.global_direction)
         return final_state, intermediate_states
 
 
