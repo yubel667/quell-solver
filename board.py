@@ -39,9 +39,6 @@ class Loc:
     def to_tuple(self):
         return (self.y, self.x)
 
-class InfiniteLoopError(Exception):
-    pass
-
 class Entity:
     def __init__(self, loc: Loc):
         self.loc = loc
@@ -563,7 +560,14 @@ class BoardState:
                 sim.global_direction
             )
             if current_signature in history:
-                raise InfiniteLoopError("Infinite loop detected in move simulation")
+                # If we detect an infinite loop, the moving droplet is removed from the board.
+                # A droplet in an infinite loop does not block others.
+                for p in list(sim.moving_pieces):
+                    if isinstance(p, Droplet):
+                        if p in sim.droplets:
+                            sim.droplets.remove(p)
+                sim.moving_pieces.clear()
+                break
             history.add(current_signature)
 
             # 2. Expand push chains

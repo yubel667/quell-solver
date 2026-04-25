@@ -4,7 +4,7 @@ import json
 import sys
 import os
 from typing import List, Tuple, Optional, Dict
-from board import BoardState, Direction, InfiniteLoopError
+from board import BoardState, Direction
 import board_io
 
 def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
@@ -46,27 +46,24 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
         # Try all possible moves
         for droplet_idx in range(len(curr_state.droplets)):
             for direction in Direction:
-                try:
-                    result = curr_state.get_next_state(droplet_idx, direction, include_intermediates=False)
-                    if result is None:
-                        continue
-                    
-                    next_state, _ = result
-                    state_id = next_state.get_id()
-                    if state_id not in came_from:
-                        move = {
-                            "droplet_idx": droplet_idx,
-                            "direction": direction.name,
-                            "from": curr_state.droplets[droplet_idx].loc.to_tuple()
-                        }
-                        came_from[state_id] = (curr_id, move)
-                        
-                        new_g = g + 1
-                        new_h = -next_state.get_droplet_count()
-                        counter += 1
-                        heapq.heappush(pq, (new_g, new_h, counter, next_state))
-                except InfiniteLoopError:
+                result = curr_state.get_next_state(droplet_idx, direction, include_intermediates=False)
+                if result is None:
                     continue
+                
+                next_state, _ = result
+                state_id = next_state.get_id()
+                if state_id not in came_from:
+                    move = {
+                        "droplet_idx": droplet_idx,
+                        "direction": direction.name,
+                        "from": curr_state.droplets[droplet_idx].loc.to_tuple()
+                    }
+                    came_from[state_id] = (curr_id, move)
+                    
+                    new_g = g + 1
+                    new_h = -next_state.get_droplet_count()
+                    counter += 1
+                    heapq.heappush(pq, (new_g, new_h, counter, next_state))
     
     if final_state:
         # Reconstruct path

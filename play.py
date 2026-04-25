@@ -2,7 +2,7 @@ import pygame
 import sys
 import time
 from board import (
-    BoardState, Direction, InfiniteLoopError
+    BoardState, Direction
 )
 import board_io
 import visualizer as vis
@@ -69,22 +69,18 @@ def main():
                     elif event.key == pygame.K_RIGHT: direction = Direction.RIGHT
                     
                     if direction and current_state.droplets:
-                        try:
-                            result = current_state.get_next_state(selected_droplet_idx, direction, include_intermediates=True)
-                            if result is None:
-                                status_msg = "Droplet Destroyed!"
-                                status_msg_time = now
-                            else:
-                                current_state, _ = result
-                                # Ensure selection is still valid after merges
-                                if not current_state.droplets:
-                                    selected_droplet_idx = 0
-                                else:
-                                    selected_droplet_idx = min(selected_droplet_idx, len(current_state.droplets) - 1)
-                                status_msg = ""
-                        except InfiniteLoopError:
-                            status_msg = "Will goto infinite"
+                        result = current_state.get_next_state(selected_droplet_idx, direction, include_intermediates=True)
+                        if result is None:
+                            status_msg = "Droplet Destroyed!"
                             status_msg_time = now
+                        else:
+                            current_state, _ = result
+                            # Ensure selection is still valid after merges
+                            if not current_state.droplets:
+                                selected_droplet_idx = 0
+                            else:
+                                selected_droplet_idx = min(selected_droplet_idx, len(current_state.droplets) - 1)
+                            status_msg = ""
 
         # 2. Draw
         vis.draw_board(screen, current_state)
