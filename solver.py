@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional, Dict
 from board import BoardState, Direction
 import board_io
 
-def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
+def solve(initial_state: BoardState, max_visited: int = 1000000) -> Tuple[Optional[List[Dict]], int, float]:
     start_time = time.time()
     
     if initial_state.is_solved():
@@ -26,6 +26,11 @@ def solve(initial_state: BoardState) -> Tuple[Optional[List[Dict]], int, float]:
     max_g = 0
 
     while pq:
+        if len(came_from) >= max_visited:
+            sys.stdout.write(f"\nMax visited states ({max_visited}) reached. Aborting.\n")
+            sys.stdout.flush()
+            break
+
         g, h, _, curr_state = heapq.heappop(pq)
         nodes_expanded += 1
         curr_id = curr_state.get_id()
@@ -85,6 +90,7 @@ def main():
     parser = argparse.ArgumentParser(description="Quell Solver")
     parser.add_argument("level_id", help="Level ID or file path. Use '-' for stdin.")
     parser.add_argument("--record", action="store_true", help="Record the solution to solutions/ folder")
+    parser.add_argument("--max-visited", type=int, default=1000000, help="Max visited states before aborting")
     args = parser.parse_args()
 
     level_id = args.level_id
@@ -113,7 +119,7 @@ def main():
         print(f"Error parsing board: {e}")
         return
 
-    solution, visited_count, duration = solve(initial_state)
+    solution, visited_count, duration = solve(initial_state, max_visited=args.max_visited)
 
     result = {}
     if solution is None:

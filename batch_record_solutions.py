@@ -3,6 +3,10 @@ import subprocess
 import argparse
 
 def batch_record():
+    parser = argparse.ArgumentParser(description="Batch Quell Solver")
+    parser.add_argument("--max-visited", type=int, default=1000000, help="Max visited states before aborting")
+    args = parser.parse_args()
+
     questions_dir = "questions"
     solutions_dir = "solutions"
     
@@ -28,7 +32,8 @@ def batch_record():
         try:
             # We call the solver script as a subprocess to handle each level one by one
             # using the existing main() logic which includes --record support.
-            subprocess.run(["python3", "solver.py", level, "--record"], check=True)
+            cmd = ["python3", "solver.py", level, "--record", "--max-visited", str(args.max_visited)]
+            subprocess.run(cmd, check=True)
         except subprocess.CalledProcessError as e:
             print(f"Error solving {level}: {e}")
 
