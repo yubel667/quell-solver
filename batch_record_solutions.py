@@ -4,7 +4,7 @@ import argparse
 
 def batch_record():
     parser = argparse.ArgumentParser(description="Batch Quell Solver")
-    parser.add_argument("--max-visited", type=int, default=1000000, help="Max visited states before aborting")
+    parser.add_argument("--max-visited", type=int, default=100000, help="Max visited states before aborting")
     args = parser.parse_args()
 
     questions_dir = "questions"

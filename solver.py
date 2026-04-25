@@ -7,7 +7,7 @@ from typing import List, Tuple, Optional, Dict
 from board import BoardState, Direction
 import board_io
 
-def solve(initial_state: BoardState, max_visited: int = 1000000) -> Tuple[Optional[List[Dict]], int, float]:
+def solve(initial_state: BoardState, max_visited: int = 100000) -> Tuple[Optional[List[Dict]], int, float]:
     start_time = time.time()
     
     if initial_state.is_solved():
