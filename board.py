@@ -116,11 +116,27 @@ class Portal(Entity):
     def render(self, screen, px, py, tile_size):
         global _PORTAL_FONT
         center = (px + tile_size // 2, py + tile_size // 2)
-        pygame.draw.circle(screen, (255, 215, 0), center, tile_size // 2 - 10, 5)
-        if _PORTAL_FONT is None:
-            _PORTAL_FONT = pygame.font.SysFont(None, 24)
-        img = _PORTAL_FONT.render(str(self.portal_id), True, (60, 60, 60))
-        screen.blit(img, (center[0] - img.get_width() // 2, center[1] - img.get_height() // 2))
+        
+        # Determine color based on ID
+        color = (255, 215, 0) # Gold
+        if self.portal_id == "2":
+            color = (192, 192, 192) # Silver
+            
+        pygame.draw.circle(screen, color, center, tile_size // 2 - 5, 5)
+        
+        # Render ID text only for ID >= 3 or non-numeric
+        show_id = True
+        try:
+            if int(self.portal_id) in [1, 2]:
+                show_id = False
+        except ValueError:
+            pass
+
+        if show_id:
+            if _PORTAL_FONT is None:
+                _PORTAL_FONT = pygame.font.SysFont(None, 24)
+            img = _PORTAL_FONT.render(str(self.portal_id), True, (60, 60, 60))
+            screen.blit(img, (center[0] - img.get_width() // 2, center[1] - img.get_height() // 2))
 
 class Movable(Entity):
     def can_move_into(self, target_entity: Optional[Entity], direction: Direction) -> bool:
