@@ -577,14 +577,21 @@ class BoardState:
                 for p in list(sim.moving_pieces):
                     target_loc = self.setup.get_next_loc(p.loc, direction)
                     target_ent = sim.dynamic_map.get(target_loc.to_tuple())
-                    if isinstance(p, Droplet) and target_ent not in sim.moving_pieces:
-                        if isinstance(target_ent, Box):
-                            sim.moving_pieces.add(target_ent)
-                            changed = True
-                        elif isinstance(target_ent, BoxWithSpike):
-                            # Push regardless of side
-                            sim.moving_pieces.add(target_ent)
-                            changed = True
+                    if target_ent and target_ent not in sim.moving_pieces:
+                        if isinstance(p, Droplet):
+                            if isinstance(target_ent, Box):
+                                sim.moving_pieces.add(target_ent)
+                                changed = True
+                            elif isinstance(target_ent, BoxWithSpike):
+                                # Push regardless of side (handled side effects in Step 3)
+                                sim.moving_pieces.add(target_ent)
+                                changed = True
+                        elif isinstance(p, (Box, BoxWithSpike)):
+                            if isinstance(target_ent, (Box, BoxWithSpike)):
+                                # box cannot push box (because they disappear), or other cases are allowed.
+                                if isinstance(p, BoxWithSpike) or isinstance(target_ent, BoxWithSpike):
+                                    sim.moving_pieces.add(target_ent)
+                                    changed = True
 
             # 3. Identify who must stop
             to_stop = set()

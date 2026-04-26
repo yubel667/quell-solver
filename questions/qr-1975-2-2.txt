@@ -1,0 +1,68 @@
+--- GRID ---
+9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9
+9 0 0 0 0 8 0 9 1 1 1 1 1 1 1 9
+9 0 8 8 0 0 0 9 1 0 0 0 7 0 1 9
+9 0 0 0 0 8 0 9 1 1 1 1 1 0 1 9
+9 0 0 0 0 0 0 9 1 0 0 0 1 7 1 9
+9 0 0 8 0 0 0 9 1 7 1 0 1 0 1 9
+9 0 0 0 8 0 8 9 1 0 1 1 1 0 1 9
+9 0 8 0 0 0 0 9 1 0 0 7 0 0 1 9
+9 0 0 0 0 0 0 9 1 1 1 1 1 1 1 9
+9 9 9 9 9 9 9 9 9 9 9 9 9 9 9 9
+
+--- PORTALS ---
+[{"y": 2, "x": 10, "id": "1"}, {"y": 5, "x": 5, "id": "1"}]
+
+--- DYNAMIC ---
+{
+  "droplets": [
+    {
+      "y": 3,
+      "x": 6,
+      "golden": false
+    },
+    {
+      "y": 4,
+      "x": 3,
+      "golden": false
+    }
+  ],
+  "boxes": [],
+  "boxes_with_spikes": [],
+  "pearls": [
+    {
+      "y": 1,
+      "x": 2,
+      "golden": false
+    },
+    {
+      "y": 2,
+      "x": 4,
+      "golden": false
+    },
+    {
+      "y": 4,
+      "x": 1,
+      "golden": false
+    },
+    {
+      "y": 5,
+      "x": 11,
+      "golden": false
+    },
+    {
+      "y": 6,
+      "x": 2,
+      "golden": false
+    },
+    {
+      "y": 7,
+      "x": 6,
+      "golden": false
+    }
+  ],
+  "gates": [],
+  "golden_walls": [],
+  "hostile_droplets": [],
+  "global_direction": "DOWN"
+}
