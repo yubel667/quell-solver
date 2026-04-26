@@ -707,7 +707,10 @@ class BoardState:
                             # Also check for dynamic blockers at next_after_exit
                             target_ent_after = sim.dynamic_map.get(next_after_exit.to_tuple())
                             if target_ent_after and target_ent_after not in sim.moving_pieces:
-                                if not p.can_move_into(target_ent_after, direction):
+                                # Special case: Golden Droplet hits Golden Wall
+                                if isinstance(p, Droplet) and p.is_golden and isinstance(target_ent_after, GoldenWall):
+                                    pass
+                                elif not p.can_move_into(target_ent_after, direction):
                                     is_blocked = True
                         
                         if is_blocked:

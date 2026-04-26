@@ -1,0 +1,15 @@
+{
+  "level_id": "test-golden-wall",
+  "steps": 1,
+  "visited": 2,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        1,
+        1
+      ]
+    }
+  ]
+}

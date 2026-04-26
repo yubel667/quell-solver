@@ -1,0 +1,111 @@
+{
+  "level_id": "qr-1975-3-3",
+  "steps": 13,
+  "visited": 2201,
+  "solution": [
+    {
+      "droplet_idx": 1,
+      "direction": "DOWN",
+      "from": [
+        4,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        3,
+        11
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "UP",
+      "from": [
+        5,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 2,
+      "direction": "LEFT",
+      "from": [
+        5,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "DOWN",
+      "from": [
+        4,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        5,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 2,
+      "direction": "UP",
+      "from": [
+        5,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        4,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        3,
+        14
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "LEFT",
+      "from": [
+        5,
+        14
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "UP",
+      "from": [
+        5,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        4,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        5,
+        11
+      ]
+    }
+  ]
+}
