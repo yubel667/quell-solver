@@ -582,10 +582,9 @@ class BoardState:
                             sim.moving_pieces.add(target_ent)
                             changed = True
                         elif isinstance(target_ent, BoxWithSpike):
-                            # Push only if hitting non-spike side
-                            if direction.value != (-target_ent.spike_dir.value[0], -target_ent.spike_dir.value[1]):
-                                sim.moving_pieces.add(target_ent)
-                                changed = True
+                            # Push regardless of side
+                            sim.moving_pieces.add(target_ent)
+                            changed = True
 
             # 3. Identify who must stop
             to_stop = set()
@@ -615,6 +614,12 @@ class BoardState:
                         pass
                     elif not p.can_move_into(target_ent, direction):
                         to_stop.add(p)
+                        continue
+                
+                # If Droplet pushes BoxWithSpike on its spike side, Droplet dies
+                if isinstance(p, Droplet) and isinstance(target_ent, BoxWithSpike) and target_ent in sim.moving_pieces:
+                    if direction.value == (-target_ent.spike_dir.value[0], -target_ent.spike_dir.value[1]):
+                        sim.to_remove.add(p)
                         continue
                 
                 # Gate blocking rule

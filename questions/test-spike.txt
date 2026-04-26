@@ -1,0 +1,44 @@
+--- GRID ---
+1 1 1 1 1
+1 1 0 1 1
+1 0 0 0 1
+1 1 0 1 1
+1 1 1 1 1
+
+--- PORTALS ---
+[]
+
+--- DYNAMIC ---
+{
+  "droplets": [
+    {
+      "y": 2,
+      "x": 1,
+      "golden": false
+    },
+    {
+      "y": 3,
+      "x": 2,
+      "golden": false
+    }
+  ],
+  "boxes": [],
+  "boxes_with_spikes": [
+    {
+      "y": 2,
+      "x": 2,
+      "spike_dir": "LEFT"
+    }
+  ],
+  "pearls": [
+    {
+      "y": 1,
+      "x": 2,
+      "golden": false
+    }
+  ],
+  "gates": [],
+  "golden_walls": [],
+  "hostile_droplets": [],
+  "global_direction": "RIGHT"
+}
