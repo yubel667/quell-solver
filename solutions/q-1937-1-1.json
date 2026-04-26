@@ -1,5 +1,71 @@
 {
   "level_id": "q-1937-1-1",
   "steps": 8,
-  "visited": 51
+  "visited": 51,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        5,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        5,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        2,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        2,
+        9
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        6,
+        9
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        6,
+        8
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        4,
+        8
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        4,
+        6
+      ]
+    }
+  ]
 }

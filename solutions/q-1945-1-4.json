@@ -1,5 +1,47 @@
 {
   "level_id": "q-1945-1-4",
   "steps": 5,
-  "visited": 20
+  "visited": 21,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        1,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        1,
+        0
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        3,
+        0
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        3,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        6,
+        3
+      ]
+    }
+  ]
 }

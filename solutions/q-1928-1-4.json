@@ -1,5 +1,95 @@
 {
   "level_id": "q-1928-1-4",
   "steps": 11,
-  "visited": 40
+  "visited": 40,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        5,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        5,
+        5
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        1,
+        5
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        1,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        1,
+        5
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        5,
+        5
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        5,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        3,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        3,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        2,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        2,
+        9
+      ]
+    }
+  ]
 }

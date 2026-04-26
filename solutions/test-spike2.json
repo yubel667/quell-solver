@@ -1,5 +1,23 @@
 {
   "level_id": "test-spike2",
   "steps": 2,
-  "visited": 3
+  "visited": 3,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        2,
+        1
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        3,
+        2
+      ]
+    }
+  ]
 }

@@ -1,5 +1,63 @@
 {
   "level_id": "qr-1970-2-1",
   "steps": 7,
-  "visited": 37
+  "visited": 37,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        4,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        5,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        2,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        2,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        5,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        1,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        1,
+        4
+      ]
+    }
+  ]
 }

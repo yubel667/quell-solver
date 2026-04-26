@@ -144,7 +144,8 @@ def main():
         record_data = {
             "level_id": level_name,
             "steps": len(solution) if solution is not None else None,
-            "visited": visited_count
+            "visited": visited_count,
+            "solution": solution
         }
         with open(record_path, "w") as f:
             json.dump(record_data, f, indent=2)

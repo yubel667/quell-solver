@@ -1,5 +1,31 @@
 {
   "level_id": "q-1937-2-3",
   "steps": 3,
-  "visited": 39
+  "visited": 39,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        1,
+        0
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        1,
+        2
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        3,
+        2
+      ]
+    }
+  ]
 }

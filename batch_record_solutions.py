@@ -5,6 +5,7 @@ import argparse
 def batch_record():
     parser = argparse.ArgumentParser(description="Batch Quell Solver")
     parser.add_argument("--max-visited", type=int, default=1000000, help="Max visited states before aborting")
+    parser.add_argument("--force", action="store_true", help="Force re-solving even if solution exists")
     args = parser.parse_args()
 
     questions_dir = "questions"
@@ -24,7 +25,7 @@ def batch_record():
     for level in levels:
         solution_path = os.path.join(solutions_dir, f"{level}.json")
         
-        if os.path.exists(solution_path):
+        if os.path.exists(solution_path) and not args.force:
             # print(f"Skipping {level}, solution already exists.")
             continue
             

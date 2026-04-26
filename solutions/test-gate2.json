@@ -1,5 +1,23 @@
 {
   "level_id": "test-gate2",
   "steps": 2,
-  "visited": 4
+  "visited": 4,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        1,
+        1
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        1,
+        3
+      ]
+    }
+  ]
 }

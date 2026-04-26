@@ -1,5 +1,6 @@
 {
   "level_id": "test-gate",
   "steps": null,
-  "visited": 3
+  "visited": 3,
+  "solution": null
 }

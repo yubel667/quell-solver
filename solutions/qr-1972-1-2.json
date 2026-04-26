@@ -1,5 +1,199 @@
 {
   "level_id": "qr-1972-1-2",
   "steps": 24,
-  "visited": 8663
+  "visited": 8663,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        2,
+        11
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        3,
+        7
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        3,
+        11
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        3,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        5,
+        7
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        5,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        3,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        5,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        5,
+        7
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        1,
+        7
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        1,
+        4
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "LEFT",
+      "from": [
+        5,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        5,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "LEFT",
+      "from": [
+        5,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "DOWN",
+      "from": [
+        5,
+        11
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        2,
+        11
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        2,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        6,
+        10
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "DOWN",
+      "from": [
+        6,
+        12
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        1,
+        12
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        3,
+        12
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "UP",
+      "from": [
+        4,
+        4
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        3,
+        4
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        3,
+        2
+      ]
+    }
+  ]
 }

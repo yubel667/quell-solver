@@ -1,5 +1,159 @@
 {
   "level_id": "qr-1975-2-2",
   "steps": 19,
-  "visited": 4536
+  "visited": 4536,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        3,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        5,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "DOWN",
+      "from": [
+        5,
+        2
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        6,
+        2
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "DOWN",
+      "from": [
+        6,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        1,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        1,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        1,
+        4
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        5,
+        4
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        2,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "LEFT",
+      "from": [
+        7,
+        13
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        4,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "LEFT",
+      "from": [
+        3,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "UP",
+      "from": [
+        3,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "UP",
+      "from": [
+        7,
+        9
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        4,
+        9
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        4,
+        11
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "RIGHT",
+      "from": [
+        7,
+        6
+      ]
+    },
+    {
+      "droplet_idx": 1,
+      "direction": "UP",
+      "from": [
+        7,
+        1
+      ]
+    }
+  ]
 }

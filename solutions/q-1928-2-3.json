@@ -1,5 +1,31 @@
 {
   "level_id": "q-1928-2-3",
   "steps": 3,
-  "visited": 10
+  "visited": 13,
+  "solution": [
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        3,
+        9
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "DOWN",
+      "from": [
+        3,
+        3
+      ]
+    },
+    {
+      "droplet_idx": 0,
+      "direction": "RIGHT",
+      "from": [
+        0,
+        3
+      ]
+    }
+  ]
 }
