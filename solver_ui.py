@@ -11,6 +11,7 @@ def main():
     parser.add_argument("level_id", help="Level ID (e.g., q-1928-1-1)")
     parser.add_argument("--autoplay", action="store_true", help="Start in auto-play mode")
     parser.add_argument("--no-controls", action="store_false", dest="show_controls", help="Hide controls text")
+    parser.add_argument("--max-visited", type=int, default=1000000, help="Max visited states before aborting")
     parser.set_defaults(show_controls=True)
     
     args = parser.parse_args()
@@ -35,7 +36,7 @@ def main():
         return
 
     print("Searching for solution...")
-    solution, visited_count, duration = solve(initial_state)
+    solution, visited_count, duration = solve(initial_state, max_visited=args.max_visited)
 
     level_name = os.path.basename(file_path).replace(".txt", "")
 

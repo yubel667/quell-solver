@@ -1,0 +1,174 @@
+--- GRID ---
+1 1 0 0 0 1 1 1 1 1 1 1 1 0 1 0 1
+0 0 0 1 0 0 0 0 0 0 0 0 0 0 1 0 0
+1 1 0 0 0 1 0 1 1 0 1 1 0 0 0 0 1
+0 0 0 1 0 0 0 1 0 0 0 0 0 1 0 0 0
+1 0 0 0 0 1 0 1 0 1 0 1 0 0 0 0 1
+1 0 1 0 0 1 0 0 0 0 0 1 0 0 0 0 1
+0 0 0 0 1 1 0 1 0 1 0 1 1 1 1 0 0
+0 1 0 0 0 1 1 0 0 0 1 1 0 0 0 0 0
+0 0 0 1 0 1 1 1 1 1 1 1 1 0 1 0 1
+
+--- PORTALS ---
+[]
+
+--- DYNAMIC ---
+{
+  "droplets": [
+    {
+      "y": 5,
+      "x": 8,
+      "golden": false
+    }
+  ],
+  "boxes": [
+    {
+      "y": 2,
+      "x": 4
+    },
+    {
+      "y": 4,
+      "x": 12
+    },
+    {
+      "y": 4,
+      "x": 14
+    },
+    {
+      "y": 6,
+      "x": 6
+    },
+    {
+      "y": 6,
+      "x": 10
+    }
+  ],
+  "boxes_with_spikes": [],
+  "pearls": [
+    {
+      "y": 1,
+      "x": 1,
+      "golden": false
+    },
+    {
+      "y": 1,
+      "x": 12,
+      "golden": false
+    },
+    {
+      "y": 3,
+      "x": 8,
+      "golden": false
+    },
+    {
+      "y": 3,
+      "x": 14,
+      "golden": false
+    },
+    {
+      "y": 4,
+      "x": 13,
+      "golden": false
+    },
+    {
+      "y": 5,
+      "x": 1,
+      "golden": false
+    },
+    {
+      "y": 5,
+      "x": 6,
+      "golden": false
+    },
+    {
+      "y": 5,
+      "x": 10,
+      "golden": false
+    },
+    {
+      "y": 6,
+      "x": 3,
+      "golden": false
+    },
+    {
+      "y": 7,
+      "x": 8,
+      "golden": false
+    },
+    {
+      "y": 7,
+      "x": 12,
+      "golden": false
+    }
+  ],
+  "gates": [
+    {
+      "y": 1,
+      "x": 7,
+      "closed": false
+    },
+    {
+      "y": 1,
+      "x": 8,
+      "closed": false
+    },
+    {
+      "y": 2,
+      "x": 6,
+      "closed": false
+    },
+    {
+      "y": 2,
+      "x": 12,
+      "closed": false
+    },
+    {
+      "y": 2,
+      "x": 15,
+      "closed": false
+    },
+    {
+      "y": 3,
+      "x": 11,
+      "closed": false
+    },
+    {
+      "y": 4,
+      "x": 4,
+      "closed": false
+    },
+    {
+      "y": 4,
+      "x": 8,
+      "closed": false
+    },
+    {
+      "y": 5,
+      "x": 7,
+      "closed": false
+    },
+    {
+      "y": 5,
+      "x": 9,
+      "closed": false
+    },
+    {
+      "y": 6,
+      "x": 8,
+      "closed": false
+    },
+    {
+      "y": 6,
+      "x": 15,
+      "closed": false
+    },
+    {
+      "y": 7,
+      "x": 14,
+      "closed": false
+    }
+  ],
+  "golden_walls": [],
+  "hostile_droplets": [],
+  "global_direction": "RIGHT"
+}
