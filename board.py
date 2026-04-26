@@ -696,7 +696,37 @@ class BoardState:
                 portal = self.setup.get_portal_at(p.loc)
                 if portal:
                     other = self.setup.get_other_portal(portal)
-                    if other: p.loc = other.loc
+                    if other:
+                        # Before teleporting, check if the exit is blocked in the CURRENT direction
+                        exit_loc = other.loc
+                        next_after_exit = self.setup.get_next_loc(exit_loc, direction)
+                        stat_after_exit = self.setup.get_stationary_at(next_after_exit)
+                        
+                        is_blocked = p.is_blocked_by_stationary(stat_after_exit, direction, sim.global_direction)
+                        if not is_blocked:
+                            # Also check for dynamic blockers at next_after_exit
+                            target_ent_after = sim.dynamic_map.get(next_after_exit.to_tuple())
+                            if target_ent_after and target_ent_after not in sim.moving_pieces:
+                                if not p.can_move_into(target_ent_after, direction):
+                                    is_blocked = True
+                        
+                        if is_blocked:
+                            # BOUNCE BACK
+                            reverse_map = {
+                                Direction.UP: Direction.DOWN,
+                                Direction.DOWN: Direction.UP,
+                                Direction.LEFT: Direction.RIGHT,
+                                Direction.RIGHT: Direction.LEFT
+                            }
+                            direction = reverse_map[direction]
+                            # Stay at entry portal, but now moving in reverse direction
+                            # We must stop processing OTHER pieces in this step to avoid direction confusion,
+                            # but usually there's only one moving piece.
+                            # Also, terminating this 'for' loop and letting the outer 'while' continue
+                            # ensures we don't do Interaction logic for the entry portal cell yet with NEW direction.
+                            break 
+                        else:
+                            p.loc = other.loc
                 
                 # Interaction logic
                 target_ent = sim.dynamic_map.get(p.loc.to_tuple())
