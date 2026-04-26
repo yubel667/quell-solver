@@ -9,7 +9,7 @@ Solution to the first level of Quell: (can be found in solutions_webp)
 
 ## Project Structure
 
-- `questions/`: Contains level definitions in a custom text/JSON hybrid format. This includes all levels from the original *Quell* and *Quell Reflect* (and ).
+- `questions/`: Contains level definitions in a custom text/JSON hybrid format. This includes all levels from the original *Quell* and *Quell Reflect* (and secret levels). "q-" are quell levels, "qr-" are quell reflect levels, "test-" are debugging cases for corner cases.
 - `solutions/`: Stores optimal solutions in `.json` format (including steps and visited node counts).
 - `solutions_webp/`: Stores optimal solutions as animated `.webp` exports.
 - `board.py`: The core simulation engine. Handles piece movement, collision logic, portals, gates, and complex "Reflect" mechanics like Boxes with Spikes.
@@ -49,7 +49,7 @@ python3 level_editor.py <level_id>
 The target of this project was the complete set of levels for *Quell* and *Quell Reflect*. However, a few specific cases are currently outside the solver's scope:
 
 1. **State Space Explosion:** One specific level (`qr-1970-3-4`) reaches the 1,000,000 state cutoff before an optimal solution is found. Because we prioritize guaranteeing the *minimum* number of steps, the BFS/Dijkstra search space for this specific configuration exceeds practical memory/time limits.
-2. **Timing-Based Puzzles:** Three levels in *Quell Reflect* utilize real-time moving hazards (timing-based synchronization). Since this solver operates on a discrete state-transition model (one player move = one simulation resolution), it cannot solve levels where the solution depends on sub-move timing.
+2. **Timing-Based Puzzles:** Three levels in *Quell Reflect* utilize real-time moving mechanism. Since this solver operates on a discrete state-transition model (one player move = one simulation resolution), it cannot solve levels where the solution depends on sub-move timing.
 
 ## Engineering Notes
 - **State Interpolation:** The visualizer uses UUID-based tracking to animate entities smoothly between discrete simulation steps.
